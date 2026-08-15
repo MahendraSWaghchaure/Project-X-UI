@@ -1,4 +1,9 @@
-# Sunju (ProjectX) Frontend
+# Sunju Frontend
+
+This is the frontend half of [Sunju](https://github.com/MahendraSWaghchaure/Project-X), a school
+transport accountability platform. The backend (Spring Boot 4, multi-module Maven) lives in its
+own repo - this one is the standalone React app, split out so each side can be built, tested, and
+deployed independently.
 
 React 19 + TypeScript + Vite, Tailwind CSS v4, TanStack Query, Zustand, react-hook-form + zod,
 react-leaflet (incl. a click-to-drop-a-pin location picker), STOMP-over-SockJS for live vehicle
@@ -12,14 +17,20 @@ child, driver, or vehicle.
 
 ## Setup
 
+Clone the [backend repo](https://github.com/MahendraSWaghchaure/Project-X) alongside this one and
+get it running first (`mvn -pl app -am spring-boot:run`, see its README) - this app has nothing to
+talk to without it.
+
 ```sh
 npm install
-cp .env.example .env   # defaults are fine for local dev against the backend on :8080
+cp .env.example .env   # defaults are fine for local dev against a backend on :8080
 npm run dev
 ```
 
 Opens on http://localhost:5173. `vite.config.ts` proxies `/api` and `/ws` to
-`http://localhost:8080`, so the backend (see `../backend/README.md`) needs to be running first.
+`http://localhost:8080` for local dev. Pointing this app at a deployed backend instead (e.g. the
+free Oracle VM setup in the backend repo's `DEPLOY.md`) means setting `VITE_API_BASE_URL` and
+`VITE_WS_BASE_URL` in `.env` to that backend's real origin - see `.env.example`'s comments.
 
 ## Structure
 
