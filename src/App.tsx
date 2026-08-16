@@ -13,6 +13,8 @@ import { UnauthorizedPage } from '@/features/public/UnauthorizedPage';
 import { DriverRegisterPage } from '@/features/public/DriverRegisterPage';
 import { LoginPage } from '@/features/auth/LoginPage';
 import { AcceptInvitePage } from '@/features/auth/AcceptInvitePage';
+import { ForgotPasswordPage } from '@/features/auth/ForgotPasswordPage';
+import { ResetPasswordPage } from '@/features/auth/ResetPasswordPage';
 
 import { PlatformAdminDashboardPage } from '@/features/platform-admin/DashboardPage';
 import { SchoolsPage } from '@/features/platform-admin/SchoolsPage';
@@ -54,6 +56,8 @@ export default function App() {
         <Route path="/vision" element={<VisionPage />} />
         <Route path="/benefits" element={<BenefitsPage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
         <Route path="/accept-invite/:token" element={<AcceptInvitePage />} />
         <Route path="/driver/register" element={<DriverRegisterPage />} />
         <Route path="/unauthorized" element={<UnauthorizedPage />} />

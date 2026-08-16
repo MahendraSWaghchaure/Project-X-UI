@@ -5,6 +5,8 @@ import { z } from 'zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createChildAsParent, listMyChildren, updateChildAsParent, type UpdateChildRequest } from '@/lib/api/children';
 import { toast } from '@/lib/toastStore';
+import { backendErrorMessage } from '@/lib/errorMessage';
+import { CLASS_LEVELS, BLOOD_TYPES, combineClassSection, splitClassSection } from '@/lib/childFields';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -15,12 +17,31 @@ const schema = z.object({
   firstName: z.string().min(1),
   lastName: z.string().min(1),
   dateOfBirth: z.string().optional(),
-  classSection: z.string().optional(),
+  classLevel: z.string().optional(),
+  section: z.string().optional(),
+  bloodType: z.string().optional(),
+  emergencyContactName: z.string().optional(),
+  emergencyContactPhone: z.string().optional(),
+  allergies: z.string().optional(),
 });
 type FormValues = z.infer<typeof schema>;
 
+function toRequest(values: FormValues): UpdateChildRequest {
+  return {
+    firstName: values.firstName,
+    lastName: values.lastName,
+    dateOfBirth: values.dateOfBirth,
+    classSection: combineClassSection(values.classLevel, values.section),
+    bloodType: values.bloodType || undefined,
+    emergencyContactName: values.emergencyContactName || undefined,
+    emergencyContactPhone: values.emergencyContactPhone || undefined,
+    allergies: values.allergies || undefined,
+  };
+}
+
 function EditChildRow({ child, onDone }: { child: Child; onDone: () => void }) {
   const queryClient = useQueryClient();
+  const { classLevel, section } = splitClassSection(child.classSection);
   const {
     register,
     handleSubmit,
@@ -31,18 +52,23 @@ function EditChildRow({ child, onDone }: { child: Child; onDone: () => void }) {
       firstName: child.firstName,
       lastName: child.lastName,
       dateOfBirth: child.dateOfBirth ?? undefined,
-      classSection: child.classSection ?? undefined,
+      classLevel,
+      section,
+      bloodType: child.bloodType ?? undefined,
+      emergencyContactName: child.emergencyContactName ?? undefined,
+      emergencyContactPhone: child.emergencyContactPhone ?? undefined,
+      allergies: child.allergies ?? undefined,
     },
   });
 
   const updateMutation = useMutation({
-    mutationFn: (values: UpdateChildRequest) => updateChildAsParent(child.id, values),
+    mutationFn: (values: FormValues) => updateChildAsParent(child.id, toRequest(values)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-children'] });
       toast.success('Child updated');
       onDone();
     },
-    onError: () => toast.error('Could not update child'),
+    onError: (error) => toast.error(backendErrorMessage(error, 'Could not update child')),
   });
 
   return (
@@ -53,7 +79,59 @@ function EditChildRow({ child, onDone }: { child: Child; onDone: () => void }) {
       <Input id={`my-child-first-name-${child.id}`} label="First name" error={errors.firstName?.message} {...register('firstName')} />
       <Input id={`my-child-last-name-${child.id}`} label="Last name" error={errors.lastName?.message} {...register('lastName')} />
       <Input id={`my-child-dob-${child.id}`} label="Date of birth" type="date" {...register('dateOfBirth')} />
-      <Input id={`my-child-class-section-${child.id}`} label="Class / section" {...register('classSection')} />
+      <div className="grid grid-cols-2 gap-3">
+        <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
+          Class
+          <select
+            id={`my-child-class-level-${child.id}`}
+            className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+            {...register('classLevel')}
+          >
+            <option value="">Select&hellip;</option>
+            {CLASS_LEVELS.map((level) => (
+              <option key={level} value={level}>
+                {level}
+              </option>
+            ))}
+          </select>
+        </label>
+        <Input id={`my-child-section-${child.id}`} label="Section" placeholder="A, B, C…" {...register('section')} />
+      </div>
+      <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
+        Blood type
+        <select
+          id={`my-child-blood-type-${child.id}`}
+          className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+          {...register('bloodType')}
+        >
+          <option value="">Unknown</option>
+          {BLOOD_TYPES.map((type) => (
+            <option key={type} value={type}>
+              {type}
+            </option>
+          ))}
+        </select>
+      </label>
+      <Input
+        id={`my-child-emergency-name-${child.id}`}
+        label="Emergency contact name"
+        {...register('emergencyContactName')}
+      />
+      <Input
+        id={`my-child-emergency-phone-${child.id}`}
+        label="Emergency contact phone"
+        {...register('emergencyContactPhone')}
+      />
+      <label className="flex flex-col gap-1 text-sm font-medium text-slate-700 sm:col-span-2">
+        Allergies / medical notes
+        <textarea
+          id={`my-child-allergies-${child.id}`}
+          className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+          rows={2}
+          placeholder="e.g. peanut allergy, asthma inhaler in bag"
+          {...register('allergies')}
+        />
+      </label>
       <div className="flex gap-2 sm:col-span-2">
         <Button type="submit" isLoading={isSubmitting}>
           Save
@@ -78,13 +156,13 @@ export function ParentChildrenPage() {
   } = useForm<FormValues>({ resolver: zodResolver(schema) });
 
   const createMutation = useMutation({
-    mutationFn: (values: FormValues) => createChildAsParent(values),
+    mutationFn: (values: FormValues) => createChildAsParent(toRequest(values)),
     onSuccess: (child) => {
       queryClient.invalidateQueries({ queryKey: ['my-children'] });
       reset();
       toast.success(`${child.firstName} added`);
     },
-    onError: () => toast.error('Could not add child'),
+    onError: (error) => toast.error(backendErrorMessage(error, 'Could not add child')),
   });
 
   return (
@@ -103,8 +181,45 @@ export function ParentChildrenPage() {
             <Input label="First name" error={errors.firstName?.message} {...register('firstName')} />
             <Input label="Last name" error={errors.lastName?.message} {...register('lastName')} />
             <Input label="Date of birth" type="date" {...register('dateOfBirth')} />
-            <Input label="Class / section" {...register('classSection')} />
-            {createMutation.isError && <p className="sm:col-span-2 text-sm text-red-600">Could not add child.</p>}
+            <div className="grid grid-cols-2 gap-4">
+              <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
+                Class
+                <select className="rounded-md border border-slate-300 px-3 py-2 text-sm" {...register('classLevel')}>
+                  <option value="">Select&hellip;</option>
+                  {CLASS_LEVELS.map((level) => (
+                    <option key={level} value={level}>
+                      {level}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <Input label="Section" placeholder="A, B, C…" {...register('section')} />
+            </div>
+            <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
+              Blood type
+              <select className="rounded-md border border-slate-300 px-3 py-2 text-sm" {...register('bloodType')}>
+                <option value="">Unknown</option>
+                {BLOOD_TYPES.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <Input label="Emergency contact name" {...register('emergencyContactName')} />
+            <Input label="Emergency contact phone" {...register('emergencyContactPhone')} />
+            <label className="flex flex-col gap-1 text-sm font-medium text-slate-700 sm:col-span-2">
+              Allergies / medical notes
+              <textarea
+                className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+                rows={2}
+                placeholder="e.g. peanut allergy, asthma inhaler in bag"
+                {...register('allergies')}
+              />
+            </label>
+            {createMutation.isError && (
+              <p className="sm:col-span-2 text-sm text-red-600">{backendErrorMessage(createMutation.error, 'Could not add child.')}</p>
+            )}
             <Button type="submit" isLoading={isSubmitting} className="sm:col-span-2 sm:w-fit">
               Add child
             </Button>
@@ -134,6 +249,13 @@ export function ParentChildrenPage() {
                       {child.classSection ? `${child.classSection} · ` : ''}
                       {child.routeId ? `Assigned to route #${child.routeId}` : 'Not yet assigned to a route by the school'}
                     </p>
+                    {(child.bloodType || child.allergies) && (
+                      <p className="mt-1 text-xs text-slate-400">
+                        {child.bloodType ? `Blood type ${child.bloodType}` : ''}
+                        {child.bloodType && child.allergies ? ' · ' : ''}
+                        {child.allergies ?? ''}
+                      </p>
+                    )}
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge tone={child.insurancePolicyId ? 'info' : 'neutral'}>

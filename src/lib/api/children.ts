@@ -8,6 +8,10 @@ export interface CreateChildRequest {
   dateOfBirth?: string;
   classSection?: string;
   primaryParentId?: number;
+  bloodType?: string;
+  emergencyContactName?: string;
+  emergencyContactPhone?: string;
+  allergies?: string;
 }
 
 export function listChildrenForSchool(schoolId: number): Promise<Child[]> {
@@ -46,6 +50,10 @@ export interface UpdateChildRequest {
   lastName: string;
   dateOfBirth?: string;
   classSection?: string;
+  bloodType?: string;
+  emergencyContactName?: string;
+  emergencyContactPhone?: string;
+  allergies?: string;
 }
 
 export function updateChildAsSchoolAdmin(schoolId: number, childId: number, request: UpdateChildRequest): Promise<Child> {

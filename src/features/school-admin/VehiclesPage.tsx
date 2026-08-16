@@ -7,14 +7,24 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createVehicle, listVehicles, retireVehicle, updateVehicle, type UpdateVehicleRequest } from '@/lib/api/vehicles';
 import { useAuthStore } from '@/lib/authStore';
 import { toast } from '@/lib/toastStore';
+import { backendErrorMessage } from '@/lib/errorMessage';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import type { Vehicle } from '@/types/school';
 
+// Uppercase, letters and digits only - matches the backend's validation exactly (see
+// CreateVehicleRequest/UpdateVehicleRequest) so a rejected value fails fast client-side instead
+// of round-tripping to the server first.
+const registrationNumberField = z
+  .string()
+  .min(1, 'Required')
+  .transform((v) => v.toUpperCase())
+  .refine((v) => /^[A-Z0-9]+$/.test(v), 'Letters and digits only, no spaces or symbols');
+
 const schema = z.object({
-  registrationNumber: z.string().min(1),
+  registrationNumber: registrationNumberField,
   type: z.enum(['VAN', 'BUS']),
   seatCapacity: z.coerce.number().int().min(1),
   gpsDeviceId: z.string().optional(),
@@ -22,7 +32,7 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 const editSchema = z.object({
-  registrationNumber: z.string().min(1),
+  registrationNumber: registrationNumberField,
   type: z.enum(['VAN', 'BUS']),
   seatCapacity: z.coerce.number().int().min(1),
 });
@@ -46,7 +56,7 @@ function EditVehicleRow({ schoolId, vehicle, onDone }: { schoolId: number; vehic
       toast.success('Vehicle updated');
       onDone();
     },
-    onError: () => toast.error('Could not update vehicle'),
+    onError: (error) => toast.error(backendErrorMessage(error, 'Could not update vehicle')),
   });
 
   return (
@@ -109,7 +119,7 @@ export function VehiclesPage() {
       reset();
       toast.success(`${vehicle.registrationNumber} added`);
     },
-    onError: () => toast.error('Could not add vehicle'),
+    onError: (error) => toast.error(backendErrorMessage(error, 'Could not add vehicle')),
   });
 
   const retireMutation = useMutation({
@@ -118,7 +128,7 @@ export function VehiclesPage() {
       queryClient.invalidateQueries({ queryKey: ['vehicles', schoolId] });
       toast.success('Vehicle retired');
     },
-    onError: () => toast.error('Could not retire vehicle'),
+    onError: (error) => toast.error(backendErrorMessage(error, 'Could not retire vehicle')),
   });
 
   return (
@@ -144,7 +154,9 @@ export function VehiclesPage() {
             </div>
             <Input label="Seat capacity" type="number" error={errors.seatCapacity?.message} {...register('seatCapacity')} />
             <Input label="GPS device id (Traccar uniqueId)" {...register('gpsDeviceId')} />
-            {createMutation.isError && <p className="sm:col-span-2 text-sm text-red-600">Could not add vehicle.</p>}
+            {createMutation.isError && (
+              <p className="sm:col-span-2 text-sm text-red-600">{backendErrorMessage(createMutation.error, 'Could not add vehicle.')}</p>
+            )}
             <Button type="submit" isLoading={isSubmitting} className="sm:col-span-2 sm:w-fit">
               Add vehicle
             </Button>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -26,6 +26,8 @@ const HOME_BY_ROLE: Record<Role, string> = {
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const passwordWasReset = Boolean((location.state as { passwordReset?: boolean } | null)?.passwordReset);
   const setSession = useAuthStore((state) => state.setSession);
   const [serverError, setServerError] = useState<string | null>(null);
   const {
@@ -53,6 +55,11 @@ export function LoginPage() {
           <CardTitle>Sign in</CardTitle>
         </CardHeader>
         <CardBody>
+          {passwordWasReset && (
+            <p className="mb-4 rounded-md bg-green-50 px-3 py-2 text-sm text-green-700">
+              Password reset - sign in with your new password.
+            </p>
+          )}
           <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
             <Input label="Email" type="email" autoComplete="email" error={errors.email?.message} {...register('email')} />
             <Input
@@ -66,6 +73,9 @@ export function LoginPage() {
             <Button type="submit" isLoading={isSubmitting} className="mt-2 w-full">
               Sign in
             </Button>
+            <Link to="/forgot-password" className="text-center text-sm text-slate-500 hover:text-blue-600">
+              Forgot password?
+            </Link>
           </form>
         </CardBody>
       </Card>

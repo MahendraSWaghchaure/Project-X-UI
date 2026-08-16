@@ -12,6 +12,7 @@ import {
   type UpdateSchoolRequest,
 } from '@/lib/api/schools';
 import { toast } from '@/lib/toastStore';
+import { backendErrorMessage } from '@/lib/errorMessage';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -144,7 +145,7 @@ export function SchoolsPage() {
       reset();
       toast.success(`${school.name} created`);
     },
-    onError: () => toast.error('Could not create school'),
+    onError: (error) => toast.error(backendErrorMessage(error, 'Could not create school')),
   });
 
   const statusMutation = useMutation({
@@ -198,7 +199,9 @@ export function SchoolsPage() {
               {...register('adminPassword')}
             />
             {createMutation.isError && (
-              <p className="sm:col-span-2 text-sm text-red-600">Could not create school. Check the fields and try again.</p>
+              <p className="sm:col-span-2 text-sm text-red-600">
+                {backendErrorMessage(createMutation.error, 'Could not create school. Check the fields and try again.')}
+              </p>
             )}
             <Button type="submit" isLoading={isSubmitting} className="sm:col-span-2 sm:w-fit">
               Create school

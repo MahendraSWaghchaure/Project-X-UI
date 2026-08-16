@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation } from '@tanstack/react-query';
 import { selfRegisterDriver } from '@/lib/api/drivers';
+import { backendErrorMessage } from '@/lib/errorMessage';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -18,7 +19,11 @@ const schema = z.object({
   phone: z.string().min(1),
   licenseNumber: z.string().min(1),
   licenseExpiry: z.string().optional(),
-  vehicleRegistrationNumber: z.string().min(1),
+  vehicleRegistrationNumber: z
+    .string()
+    .min(1)
+    .transform((v) => v.toUpperCase())
+    .refine((v) => /^[A-Z0-9]+$/.test(v), 'Letters and digits only, no spaces or symbols'),
   vehicleType: z.enum(['VAN', 'BUS']),
   vehicleSeatCapacity: z.coerce.number().int().min(1),
 });
@@ -106,8 +111,10 @@ export function DriverRegisterPage() {
 
             {mutation.isError && (
               <p className="sm:col-span-2 text-sm text-red-600">
-                Could not register. Check your details — the email, license number, or vehicle registration number
-                may already be in use.
+                {backendErrorMessage(
+                  mutation.error,
+                  'Could not register. Check your details and try again.',
+                )}
               </p>
             )}
             <Button type="submit" isLoading={isSubmitting} className="sm:col-span-2">

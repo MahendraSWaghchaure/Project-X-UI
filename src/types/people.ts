@@ -42,5 +42,9 @@ export interface Child {
   routeId: number | null;
   routeStopId: number | null;
   insurancePolicyId: number | null;
+  bloodType: string | null;
+  emergencyContactName: string | null;
+  emergencyContactPhone: string | null;
+  allergies: string | null;
   status: ChildStatus;
 }

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -21,6 +21,52 @@ const schema = z.object({
 });
 type FormValues = z.infer<typeof schema>;
 
+interface IfscBranch {
+  bank: string;
+  branch: string;
+  city: string;
+}
+
+/**
+ * Looks up the bank/branch for a valid-shaped IFSC code via Razorpay's free, no-auth-required
+ * public IFSC API (https://ifsc.razorpay.com/{code}) - lets the driver visually confirm they
+ * typed the right code before saving, the same way a real banking app would. Debounced so it
+ * doesn't fire on every keystroke, and fails silently (no lookup shown) on network error or an
+ * unrecognized code rather than blocking the form - this is a confirmation nicety, not validation
+ * the submit should depend on.
+ */
+function useIfscLookup(ifscCode: string) {
+  const [result, setResult] = useState<IfscBranch | 'not-found' | 'loading' | null>(null);
+
+  useEffect(() => {
+    if (!/^[A-Za-z]{4}0[A-Za-z0-9]{6}$/.test(ifscCode)) {
+      setResult(null);
+      return;
+    }
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      setResult('loading');
+      try {
+        const response = await fetch(`https://ifsc.razorpay.com/${ifscCode.toUpperCase()}`, { signal: controller.signal });
+        if (!response.ok) {
+          setResult('not-found');
+          return;
+        }
+        const data = await response.json();
+        setResult({ bank: data.BANK, branch: data.BRANCH, city: data.CITY });
+      } catch {
+        if (!controller.signal.aborted) setResult(null);
+      }
+    }, 400);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [ifscCode]);
+
+  return result;
+}
+
 export function DriverPayrollPage() {
   const queryClient = useQueryClient();
   const { data: bankDetails, isLoading: bankLoading } = useQuery({
@@ -34,8 +80,10 @@ export function DriverPayrollPage() {
     register,
     handleSubmit,
     reset,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({ resolver: zodResolver(schema) });
+  const ifscLookup = useIfscLookup(watch('ifscCode') ?? '');
 
   useEffect(() => {
     if (bankDetails) {
@@ -84,6 +132,13 @@ export function DriverPayrollPage() {
               {...register('accountNumber')}
             />
             <Input label="IFSC code" error={errors.ifscCode?.message} placeholder="HDFC0001234" {...register('ifscCode')} />
+            {ifscLookup === 'loading' && <p className="-mt-2 text-sm text-slate-400">Looking up branch&hellip;</p>}
+            {ifscLookup === 'not-found' && <p className="-mt-2 text-sm text-amber-600">Code not recognized - double-check it</p>}
+            {ifscLookup && typeof ifscLookup === 'object' && (
+              <p className="-mt-2 text-sm text-green-700">
+                {ifscLookup.bank}, {ifscLookup.branch}, {ifscLookup.city}
+              </p>
+            )}
             {mutation.isError && (
               <p className="text-sm text-red-600">{backendErrorMessage(mutation.error, 'Could not save bank details')}</p>
             )}
