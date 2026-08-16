@@ -16,7 +16,7 @@ import { openRazorpayCheckout } from '@/lib/razorpayCheckout';
 import { Button } from '@/components/ui/Button';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
-import type { FeeInvoice } from '@/types/payment';
+import type { FeeInvoice, Payment } from '@/types/payment';
 
 const DISCOUNT_TIERS: { months: number; percent: number }[] = [
   { months: 3, percent: 5 },
@@ -77,6 +77,36 @@ function WaiverRequestForm({ invoice, onDone }: { invoice: FeeInvoice; onDone: (
   );
 }
 
+function ReceiptView({ payment }: { payment: Payment }) {
+  return (
+    <div className="mt-2 flex flex-col gap-1 rounded-md border border-slate-200 bg-white p-4 text-sm print:border-none">
+      <p className="text-base font-semibold text-slate-900">Payment receipt</p>
+      <p className="text-slate-500">Receipt #{payment.receiptNumber ?? '—'}</p>
+      <div className="mt-2 grid grid-cols-2 gap-y-1">
+        <span className="text-slate-500">Date</span>
+        <span>{new Date(payment.createdAt).toLocaleString()}</span>
+        <span className="text-slate-500">Amount paid</span>
+        <span className="font-medium">₹{payment.amount.toFixed(2)}</span>
+        {payment.discountAmount > 0 && (
+          <>
+            <span className="text-slate-500">Discount applied</span>
+            <span>₹{payment.discountAmount.toFixed(2)}</span>
+          </>
+        )}
+        <span className="text-slate-500">Months covered</span>
+        <span>{payment.monthsCovered}</span>
+        <span className="text-slate-500">Payment mode</span>
+        <span>{payment.mode ?? 'Unknown'}</span>
+        <span className="text-slate-500">Status</span>
+        <span>{payment.status}</span>
+      </div>
+      <Button variant="secondary" className="mt-3 w-fit print:hidden" onClick={() => window.print()}>
+        Print / save as PDF
+      </Button>
+    </div>
+  );
+}
+
 export function ParentPaymentsPage() {
   const email = useAuthStore((state) => state.email);
   const queryClient = useQueryClient();
@@ -84,6 +114,7 @@ export function ParentPaymentsPage() {
   const [waiverInvoiceId, setWaiverInvoiceId] = useState<number | null>(null);
   const [advanceChildId, setAdvanceChildId] = useState<number | ''>('');
   const [advanceMonths, setAdvanceMonths] = useState(3);
+  const [receiptPaymentId, setReceiptPaymentId] = useState<number | null>(null);
 
   const { data: invoices, isLoading: invoicesLoading } = useQuery({ queryKey: ['my-fee-invoices'], queryFn: listMyFeeInvoices });
   const { data: payments, isLoading: paymentsLoading } = useQuery({ queryKey: ['my-payments'], queryFn: listMyPayments });
@@ -250,20 +281,33 @@ export function ParentPaymentsPage() {
           {paymentsLoading && <p className="text-sm text-slate-500">Loading&hellip;</p>}
           <ul className="flex flex-col divide-y divide-slate-100">
             {payments?.map((payment) => (
-              <li key={payment.id} className="flex items-center justify-between gap-4 py-3">
-                <div>
-                  <p className="font-medium text-slate-900">
-                    ₹{payment.amount.toFixed(2)}
-                    {payment.discountAmount > 0 && ` (saved ₹${payment.discountAmount.toFixed(2)})`}
-                  </p>
-                  <p className="text-sm text-slate-500">
-                    {payment.receiptNumber ?? 'No receipt yet'} · {payment.mode ?? 'mode unknown'} ·{' '}
-                    {new Date(payment.createdAt).toLocaleString()} · {payment.monthsCovered} month(s)
-                  </p>
+              <li key={payment.id} className="py-3">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="font-medium text-slate-900">
+                      ₹{payment.amount.toFixed(2)}
+                      {payment.discountAmount > 0 && ` (saved ₹${payment.discountAmount.toFixed(2)})`}
+                    </p>
+                    <p className="text-sm text-slate-500">
+                      {payment.receiptNumber ?? 'No receipt yet'} · {payment.mode ?? 'mode unknown'} ·{' '}
+                      {new Date(payment.createdAt).toLocaleString()} · {payment.monthsCovered} month(s)
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge tone={payment.status === 'SUCCESS' ? 'success' : payment.status === 'FAILED' ? 'danger' : 'neutral'}>
+                      {payment.status}
+                    </Badge>
+                    {payment.status === 'SUCCESS' && (
+                      <Button
+                        variant="secondary"
+                        onClick={() => setReceiptPaymentId(receiptPaymentId === payment.id ? null : payment.id)}
+                      >
+                        {receiptPaymentId === payment.id ? 'Hide receipt' : 'View receipt'}
+                      </Button>
+                    )}
+                  </div>
                 </div>
-                <Badge tone={payment.status === 'SUCCESS' ? 'success' : payment.status === 'FAILED' ? 'danger' : 'neutral'}>
-                  {payment.status}
-                </Badge>
+                {receiptPaymentId === payment.id && <ReceiptView payment={payment} />}
               </li>
             ))}
             {payments?.length === 0 && <p className="py-3 text-sm text-slate-500">No payments yet.</p>}

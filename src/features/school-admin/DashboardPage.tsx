@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { listVehicles } from '@/lib/api/vehicles';
 import { listDrivers, listIndependentDrivers } from '@/lib/api/drivers';
@@ -8,7 +8,10 @@ import { listTripsForSchool } from '@/lib/api/trips';
 import { getSchool } from '@/lib/api/schools';
 import { listGrievancesForSchool } from '@/lib/api/grievances';
 import { listPayrollForSchool, listPaymentsForSchool } from '@/lib/api/payments';
+import { listActiveSos, resolveSos } from '@/lib/api/tracking';
 import { useAuthStore } from '@/lib/authStore';
+import { toast } from '@/lib/toastStore';
+import { Button } from '@/components/ui/Button';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { cn } from '@/lib/cn';
@@ -55,8 +58,23 @@ const STATUS_TONE: Record<TripStatus, 'neutral' | 'success' | 'warning' | 'dange
 export function SchoolAdminDashboardPage() {
   const schoolId = useAuthStore((state) => state.schoolId);
   const enabled = schoolId != null;
+  const queryClient = useQueryClient();
 
   const { data: school } = useQuery({ queryKey: ['school', schoolId], queryFn: () => getSchool(schoolId!), enabled });
+  const { data: activeSos } = useQuery({
+    queryKey: ['active-sos', schoolId],
+    queryFn: () => listActiveSos(schoolId!),
+    enabled,
+    refetchInterval: 15000,
+  });
+  const resolveSosMutation = useMutation({
+    mutationFn: (sosEventId: number) => resolveSos(sosEventId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['active-sos', schoolId] });
+      toast.success('SOS marked resolved');
+    },
+    onError: () => toast.error('Could not resolve SOS'),
+  });
   const { data: vehicles } = useQuery({ queryKey: ['vehicles', schoolId], queryFn: () => listVehicles(schoolId!), enabled });
   const { data: drivers } = useQuery({ queryKey: ['drivers', schoolId], queryFn: () => listDrivers(schoolId!), enabled });
   const { data: routes } = useQuery({ queryKey: ['routes', schoolId], queryFn: () => listRoutes(schoolId!), enabled });
@@ -107,6 +125,25 @@ export function SchoolAdminDashboardPage() {
         <p className="text-sm text-slate-500">{school?.city}</p>
       </div>
 
+      {activeSos && activeSos.length > 0 && (
+        <div className="flex flex-col gap-2 rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800">
+          {activeSos.map((sos) => (
+            <div key={sos.id} className="flex items-center justify-between gap-3">
+              <span>
+                SOS on trip #{sos.tripId} at {new Date(sos.triggeredAt).toLocaleTimeString()}
+                {sos.note ? ` - ${sos.note}` : ''}
+              </span>
+              <Button
+                variant="danger"
+                isLoading={resolveSosMutation.isPending && resolveSosMutation.variables === sos.id}
+                onClick={() => resolveSosMutation.mutate(sos.id)}
+              >
+                Mark resolved
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
       {delayedTrips > 0 && (
         <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           {delayedTrips} trip{delayedTrips > 1 ? 's are' : ' is'} currently running past dismissal time - see the

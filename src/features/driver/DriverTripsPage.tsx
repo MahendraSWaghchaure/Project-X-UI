@@ -1,12 +1,19 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { listMyTripsAsDriver, startTrip, completeTrip, recordDriverMarkedEvent } from '@/lib/api/trips';
-import { listChildrenForRoute } from '@/lib/api/children';
-import { useAuthStore } from '@/lib/authStore';
+import {
+  listMyTripsAsDriver,
+  startTrip,
+  completeTrip,
+  recordDriverMarkedEvent,
+  recordScannedEvent,
+  getTripManifest,
+} from '@/lib/api/trips';
+import { triggerSos } from '@/lib/api/tracking';
 import { toast } from '@/lib/toastStore';
 import { Button } from '@/components/ui/Button';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { QrScanner } from '@/components/QrScanner';
 import type { ChildTripEventType, Trip, TripStatus } from '@/types/tracking';
 
 const STATUS_TONE: Record<TripStatus, 'neutral' | 'success' | 'warning' | 'danger' | 'info'> = {
@@ -35,7 +42,6 @@ function eventButtons(direction: Trip['direction']): { label: string; type: Chil
 }
 
 export function DriverTripsPage() {
-  const schoolId = useAuthStore((state) => state.schoolId);
   const [expandedTripId, setExpandedTripId] = useState<number | null>(null);
   const queryClient = useQueryClient();
 
@@ -59,6 +65,11 @@ export function DriverTripsPage() {
       toast.success('Trip completed');
     },
     onError: () => toast.error('Could not complete trip'),
+  });
+  const sosMutation = useMutation({
+    mutationFn: (tripId: number) => triggerSos(tripId),
+    onSuccess: () => toast.success('SOS sent - the school and guardians have been notified'),
+    onError: () => toast.error('Could not send SOS - try calling the school directly'),
   });
 
   return (
@@ -90,10 +101,22 @@ export function DriverTripsPage() {
                   <Button isLoading={completeMutation.isPending} onClick={() => completeMutation.mutate(trip.id)}>
                     Complete trip
                   </Button>
+                  <Button
+                    variant="danger"
+                    className="ml-auto"
+                    isLoading={sosMutation.isPending}
+                    onClick={() => {
+                      if (window.confirm('Send an SOS? This immediately alerts the school and every guardian on this route.')) {
+                        sosMutation.mutate(trip.id);
+                      }
+                    }}
+                  >
+                    SOS
+                  </Button>
                 </>
               )}
             </div>
-            {expandedTripId === trip.id && schoolId != null && <TripChildren trip={trip} schoolId={schoolId} />}
+            {expandedTripId === trip.id && <TripChildren trip={trip} />}
           </CardBody>
         </Card>
       ))}
@@ -101,11 +124,12 @@ export function DriverTripsPage() {
   );
 }
 
-function TripChildren({ trip, schoolId }: { trip: Trip; schoolId: number }) {
+function TripChildren({ trip }: { trip: Trip }) {
   const queryClient = useQueryClient();
-  const { data: children } = useQuery({
-    queryKey: ['route-children', trip.routeId],
-    queryFn: () => listChildrenForRoute(schoolId, trip.routeId),
+  const [scanning, setScanning] = useState(false);
+  const { data: manifest } = useQuery({
+    queryKey: ['trip-manifest', trip.id],
+    queryFn: () => getTripManifest(trip.id),
   });
 
   const markMutation = useMutation({
@@ -118,29 +142,50 @@ function TripChildren({ trip, schoolId }: { trip: Trip; schoolId: number }) {
     onError: () => toast.error('Could not record that'),
   });
 
+  const scanMutation = useMutation({
+    mutationFn: (qrToken: string) =>
+      recordScannedEvent(trip.id, qrToken, trip.direction === 'MORNING_PICKUP' ? 'BOARDED' : 'PICKED_FROM_SCHOOL'),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['child-trip-events', trip.id] });
+      toast.success('Boarding recorded from QR scan');
+      setScanning(false);
+    },
+    onError: () => toast.error('Could not recognize that QR code'),
+  });
+
   return (
-    <ul className="divide-y divide-slate-100 rounded-md border border-slate-200">
-      {children?.map((child) => (
-        <li key={child.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
-          <span className="font-medium text-slate-900">
-            {child.firstName} {child.lastName}
-          </span>
-          <div className="flex gap-1.5">
-            {eventButtons(trip.direction).map((btn) => (
-              <Button
-                key={btn.type}
-                variant="secondary"
-                className="text-xs"
-                isLoading={markMutation.isPending && markMutation.variables?.childId === child.id}
-                onClick={() => markMutation.mutate({ childId: child.id, type: btn.type })}
-              >
-                {btn.label}
-              </Button>
-            ))}
-          </div>
-        </li>
-      ))}
-      {children?.length === 0 && <li className="px-3 py-2 text-sm text-slate-500">No children assigned to this route.</li>}
-    </ul>
+    <div className="flex flex-col gap-2">
+      <Button variant="secondary" className="w-fit" onClick={() => setScanning((s) => !s)}>
+        {scanning ? 'Stop scanning' : 'Scan child QR code'}
+      </Button>
+      {scanning && <QrScanner onScan={(token) => scanMutation.mutate(token)} onClose={() => setScanning(false)} />}
+
+      <ul className="divide-y divide-slate-100 rounded-md border border-slate-200">
+        {manifest?.map((child) => (
+          <li key={child.childId} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
+            <span className="font-medium text-slate-900">
+              {child.firstName} {child.lastName}
+              {child.absentToday && <Badge tone="neutral" className="ml-2">Marked absent</Badge>}
+            </span>
+            {!child.absentToday && (
+              <div className="flex gap-1.5">
+                {eventButtons(trip.direction).map((btn) => (
+                  <Button
+                    key={btn.type}
+                    variant="secondary"
+                    className="text-xs"
+                    isLoading={markMutation.isPending && markMutation.variables?.childId === child.childId}
+                    onClick={() => markMutation.mutate({ childId: child.childId, type: btn.type })}
+                  >
+                    {btn.label}
+                  </Button>
+                ))}
+              </div>
+            )}
+          </li>
+        ))}
+        {manifest?.length === 0 && <li className="px-3 py-2 text-sm text-slate-500">No children assigned to this route.</li>}
+      </ul>
+    </div>
   );
 }

@@ -11,6 +11,7 @@ import {
   listIndependentDrivers,
   terminateDriver,
   updateDriver,
+  updateDriverVerification,
   type UpdateDriverRequest,
 } from '@/lib/api/drivers';
 import { useAuthStore } from '@/lib/authStore';
@@ -197,6 +198,16 @@ export function DriversPage() {
     onError: () => toast.error('Could not terminate driver'),
   });
 
+  const verifyMutation = useMutation({
+    mutationFn: ({ driverId, status }: { driverId: number; status: 'VERIFIED' | 'REJECTED' }) =>
+      updateDriverVerification(schoolId!, driverId, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['drivers', schoolId] });
+      toast.success('Verification status updated');
+    },
+    onError: () => toast.error('Could not update verification status'),
+  });
+
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-2xl font-bold text-slate-900">Drivers</h1>
@@ -250,6 +261,20 @@ export function DriversPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge tone={driver.employmentStatus === 'ACTIVE' ? 'success' : 'warning'}>{driver.employmentStatus}</Badge>
+                    <Badge
+                      tone={driver.verificationStatus === 'VERIFIED' ? 'success' : driver.verificationStatus === 'REJECTED' ? 'danger' : 'warning'}
+                    >
+                      {driver.verificationStatus === 'VERIFIED' ? 'Verified' : driver.verificationStatus === 'REJECTED' ? 'Rejected' : 'Verification pending'}
+                    </Badge>
+                    {driver.verificationStatus !== 'VERIFIED' && (
+                      <Button
+                        variant="secondary"
+                        isLoading={verifyMutation.isPending && verifyMutation.variables?.driverId === driver.id}
+                        onClick={() => verifyMutation.mutate({ driverId: driver.id, status: 'VERIFIED' })}
+                      >
+                        Mark verified
+                      </Button>
+                    )}
                     {driver.insurancePolicyId ? (
                       <Badge tone="info">Insured</Badge>
                     ) : (

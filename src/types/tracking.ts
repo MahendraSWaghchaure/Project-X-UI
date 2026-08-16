@@ -30,6 +30,13 @@ export interface ChildTripEvent {
   occurredAt: string;
 }
 
+export interface TripManifestEntry {
+  childId: number;
+  firstName: string;
+  lastName: string;
+  absentToday: boolean;
+}
+
 // Matches backend/module-tracking/.../cache/CachedLocation.java - what both the REST fallback and
 // the /topic/vehicles/{id}/location STOMP messages carry.
 export interface CachedLocation {
@@ -40,4 +47,30 @@ export interface CachedLocation {
   speedKmh: number | null;
   headingDegrees: number | null;
   recordedAt: string;
+}
+
+// Matches backend/module-tracking/.../dto/SosEventResponse.java - also what the
+// /topic/trips/{id}/sos STOMP messages carry.
+export interface SosEvent {
+  id: number;
+  tripId: number;
+  vehicleId: number;
+  schoolId: number;
+  routeId: number;
+  triggeredByUserId: number;
+  note: string | null;
+  triggeredAt: string;
+  resolvedAt: string | null;
+  resolved: boolean;
+}
+
+export type SafetyEventType = 'OVERSPEED' | 'HARSH_BRAKING';
+
+export interface SafetyEvent {
+  id: number;
+  tripId: number;
+  vehicleId: number;
+  type: SafetyEventType;
+  speedKmh: number | null;
+  occurredAt: string;
 }

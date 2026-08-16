@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 import { login } from '@/lib/api/auth';
 import { useAuthStore } from '@/lib/authStore';
@@ -25,6 +26,7 @@ const HOME_BY_ROLE: Record<Role, string> = {
 };
 
 export function LoginPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const passwordWasReset = Boolean((location.state as { passwordReset?: boolean } | null)?.passwordReset);
@@ -52,18 +54,22 @@ export function LoginPage() {
       <Logo size="lg" />
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>Sign in</CardTitle>
+          <CardTitle>{t('login.title')}</CardTitle>
         </CardHeader>
         <CardBody>
           {passwordWasReset && (
-            <p className="mb-4 rounded-md bg-green-50 px-3 py-2 text-sm text-green-700">
-              Password reset - sign in with your new password.
-            </p>
+            <p className="mb-4 rounded-md bg-green-50 px-3 py-2 text-sm text-green-700">{t('login.passwordResetSuccess')}</p>
           )}
           <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
-            <Input label="Email" type="email" autoComplete="email" error={errors.email?.message} {...register('email')} />
             <Input
-              label="Password"
+              label={t('login.email')}
+              type="email"
+              autoComplete="email"
+              error={errors.email?.message}
+              {...register('email')}
+            />
+            <Input
+              label={t('login.password')}
               type="password"
               autoComplete="current-password"
               error={errors.password?.message}
@@ -71,10 +77,10 @@ export function LoginPage() {
             />
             {serverError && <p className="text-sm text-red-600">{serverError}</p>}
             <Button type="submit" isLoading={isSubmitting} className="mt-2 w-full">
-              Sign in
+              {t('login.submit')}
             </Button>
             <Link to="/forgot-password" className="text-center text-sm text-slate-500 hover:text-blue-600">
-              Forgot password?
+              {t('login.forgotPassword')}
             </Link>
           </form>
         </CardBody>

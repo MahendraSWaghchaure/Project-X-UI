@@ -1,9 +1,20 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { createChildAsParent, listMyChildren, updateChildAsParent, type UpdateChildRequest } from '@/lib/api/children';
+import QRCode from 'qrcode';
+import {
+  createChildAsParent,
+  listMyChildren,
+  updateChildAsParent,
+  setChildAbsence,
+  clearChildAbsence,
+  getAttendanceHistory,
+  getMyChildQrToken,
+  inviteSecondGuardian,
+  type UpdateChildRequest,
+} from '@/lib/api/children';
 import { toast } from '@/lib/toastStore';
 import { backendErrorMessage } from '@/lib/errorMessage';
 import { CLASS_LEVELS, BLOOD_TYPES, combineClassSection, splitClassSection } from '@/lib/childFields';
@@ -144,6 +155,159 @@ function EditChildRow({ child, onDone }: { child: Child; onDone: () => void }) {
   );
 }
 
+function tomorrow(): string {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  return d.toISOString().slice(0, 10);
+}
+
+function daysAgo(n: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return d.toISOString().slice(0, 10);
+}
+
+function ChildQrPanel({ childId }: { childId: number }) {
+  const { data: token } = useQuery({ queryKey: ['child-qr-token', childId], queryFn: () => getMyChildQrToken(childId) });
+  const [dataUrl, setDataUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (token) {
+      QRCode.toDataURL(token, { width: 220 }).then(setDataUrl).catch(() => setDataUrl(null));
+    }
+  }, [token]);
+
+  return (
+    <div className="flex flex-col items-center gap-2 rounded-md border border-slate-200 p-3">
+      <p className="text-sm text-slate-600">Show this to the driver to scan for boarding instead of a manual check-in.</p>
+      {dataUrl ? <img src={dataUrl} alt="Child boarding QR code" width={220} height={220} /> : <p className="text-sm text-slate-400">Generating&hellip;</p>}
+    </div>
+  );
+}
+
+function ChildAbsencePanel({ childId }: { childId: number }) {
+  const [date, setDate] = useState(tomorrow());
+  const markMutation = useMutation({
+    mutationFn: () => setChildAbsence(childId, date),
+    onSuccess: () => toast.success(`Marked absent for ${date}`),
+    onError: (error) => toast.error(backendErrorMessage(error, 'Could not mark absence')),
+  });
+  const clearMutation = useMutation({
+    mutationFn: () => clearChildAbsence(childId, date),
+    onSuccess: () => toast.success(`Absence cleared for ${date}`),
+    onError: (error) => toast.error(backendErrorMessage(error, 'Could not clear absence')),
+  });
+
+  return (
+    <div className="flex flex-wrap items-end gap-2 rounded-md border border-slate-200 p-3">
+      <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
+        Date
+        <input
+          type="date"
+          min={new Date().toISOString().slice(0, 10)}
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+          className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+        />
+      </label>
+      <Button isLoading={markMutation.isPending} onClick={() => markMutation.mutate()}>
+        Not riding that day
+      </Button>
+      <Button variant="secondary" isLoading={clearMutation.isPending} onClick={() => clearMutation.mutate()}>
+        Clear
+      </Button>
+    </div>
+  );
+}
+
+function ChildAttendancePanel({ childId }: { childId: number }) {
+  const { data: events, isLoading } = useQuery({
+    queryKey: ['attendance', childId],
+    queryFn: () => getAttendanceHistory(childId, daysAgo(30), daysAgo(0)),
+  });
+
+  return (
+    <div className="flex flex-col gap-1 rounded-md border border-slate-200 p-3">
+      <p className="text-sm font-medium text-slate-700">Last 30 days</p>
+      {isLoading && <p className="text-sm text-slate-500">Loading&hellip;</p>}
+      <ul className="flex flex-col divide-y divide-slate-100 text-sm">
+        {events?.map((event) => (
+          <li key={event.id} className="flex items-center justify-between py-1.5">
+            <span>{event.eventType.replace(/_/g, ' ').toLowerCase()}</span>
+            <span className="text-slate-400">{new Date(event.occurredAt).toLocaleString()}</span>
+          </li>
+        ))}
+        {events?.length === 0 && <li className="py-1.5 text-slate-500">No attendance events in this range yet.</li>}
+      </ul>
+    </div>
+  );
+}
+
+function ChildGuardianInvitePanel({ childId }: { childId: number }) {
+  const [email, setEmail] = useState('');
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const inviteMutation = useMutation({
+    mutationFn: () => inviteSecondGuardian(childId, email),
+    onSuccess: (response) => {
+      setInviteLink(`${window.location.origin}/accept-invite/${response.inviteToken}`);
+      toast.success('Invite created');
+    },
+    onError: (error) => toast.error(backendErrorMessage(error, 'Could not invite guardian')),
+  });
+
+  return (
+    <div className="flex flex-col gap-2 rounded-md border border-slate-200 p-3">
+      <p className="text-sm text-slate-600">Invite a second parent or guardian for this child.</p>
+      <div className="flex gap-2">
+        <input
+          type="email"
+          placeholder="guardian@example.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm"
+        />
+        <Button isLoading={inviteMutation.isPending} disabled={!email} onClick={() => inviteMutation.mutate()}>
+          Invite
+        </Button>
+      </div>
+      {inviteLink && (
+        <p className="break-all rounded-md bg-slate-50 p-3 text-sm text-slate-700">
+          Invite link: <span className="font-mono">{inviteLink}</span>
+        </p>
+      )}
+    </div>
+  );
+}
+
+function ChildExtras({ child }: { child: Child }) {
+  const [panel, setPanel] = useState<'qr' | 'absence' | 'attendance' | 'invite' | null>(null);
+
+  return (
+    <div className="mt-2 flex flex-col gap-2">
+      <div className="flex flex-wrap gap-1.5">
+        <Button variant="ghost" className="text-xs" onClick={() => setPanel(panel === 'qr' ? null : 'qr')}>
+          Boarding QR code
+        </Button>
+        <Button variant="ghost" className="text-xs" onClick={() => setPanel(panel === 'absence' ? null : 'absence')}>
+          Mark absent
+        </Button>
+        <Button variant="ghost" className="text-xs" onClick={() => setPanel(panel === 'attendance' ? null : 'attendance')}>
+          Attendance history
+        </Button>
+        {!child.secondaryParentId && (
+          <Button variant="ghost" className="text-xs" onClick={() => setPanel(panel === 'invite' ? null : 'invite')}>
+            Invite second guardian
+          </Button>
+        )}
+      </div>
+      {panel === 'qr' && <ChildQrPanel childId={child.id} />}
+      {panel === 'absence' && <ChildAbsencePanel childId={child.id} />}
+      {panel === 'attendance' && <ChildAttendancePanel childId={child.id} />}
+      {panel === 'invite' && <ChildGuardianInvitePanel childId={child.id} />}
+    </div>
+  );
+}
+
 export function ParentChildrenPage() {
   const queryClient = useQueryClient();
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -240,31 +404,34 @@ export function ParentChildrenPage() {
                   <EditChildRow child={child} onDone={() => setEditingId(null)} />
                 </li>
               ) : (
-                <li key={child.id} className="flex items-center justify-between gap-4 py-3">
-                  <div>
-                    <p className="font-medium text-slate-900">
-                      {child.firstName} {child.lastName}
-                    </p>
-                    <p className="text-sm text-slate-500">
-                      {child.classSection ? `${child.classSection} · ` : ''}
-                      {child.routeId ? `Assigned to route #${child.routeId}` : 'Not yet assigned to a route by the school'}
-                    </p>
-                    {(child.bloodType || child.allergies) && (
-                      <p className="mt-1 text-xs text-slate-400">
-                        {child.bloodType ? `Blood type ${child.bloodType}` : ''}
-                        {child.bloodType && child.allergies ? ' · ' : ''}
-                        {child.allergies ?? ''}
+                <li key={child.id} className="flex flex-col gap-2 py-3">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="font-medium text-slate-900">
+                        {child.firstName} {child.lastName}
                       </p>
-                    )}
+                      <p className="text-sm text-slate-500">
+                        {child.classSection ? `${child.classSection} · ` : ''}
+                        {child.routeId ? `Assigned to route #${child.routeId}` : 'Not yet assigned to a route by the school'}
+                      </p>
+                      {(child.bloodType || child.allergies) && (
+                        <p className="mt-1 text-xs text-slate-400">
+                          {child.bloodType ? `Blood type ${child.bloodType}` : ''}
+                          {child.bloodType && child.allergies ? ' · ' : ''}
+                          {child.allergies ?? ''}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge tone={child.insurancePolicyId ? 'info' : 'neutral'}>
+                        {child.insurancePolicyId ? 'Insured' : 'Not insured'}
+                      </Badge>
+                      <Button variant="secondary" onClick={() => setEditingId(child.id)}>
+                        Edit
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Badge tone={child.insurancePolicyId ? 'info' : 'neutral'}>
-                      {child.insurancePolicyId ? 'Insured' : 'Not insured'}
-                    </Badge>
-                    <Button variant="secondary" onClick={() => setEditingId(child.id)}>
-                      Edit
-                    </Button>
-                  </div>
+                  <ChildExtras child={child} />
                 </li>
               ),
             )}

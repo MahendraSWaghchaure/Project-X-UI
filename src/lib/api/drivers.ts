@@ -1,7 +1,8 @@
 import { apiClient, unwrap } from '@/lib/apiClient';
 import type { ApiResponse } from '@/types/api';
-import type { Driver } from '@/types/people';
+import type { Driver, DriverVerificationStatus } from '@/types/people';
 import type { VehicleType } from '@/types/school';
+import type { SafetyEvent } from '@/types/tracking';
 
 export interface CreateDriverRequest {
   firstName: string;
@@ -64,4 +65,12 @@ export function selfRegisterDriver(request: DriverSelfRegisterRequest): Promise<
 /** The pool of self-registered drivers no school has claimed yet. */
 export function listIndependentDrivers(): Promise<Driver[]> {
   return apiClient.get<ApiResponse<Driver[]>>('/drivers/independent').then(unwrap);
+}
+
+export function updateDriverVerification(schoolId: number, driverId: number, status: DriverVerificationStatus): Promise<Driver> {
+  return apiClient.patch<ApiResponse<Driver>>(`/schools/${schoolId}/drivers/${driverId}/verification`, { status }).then(unwrap);
+}
+
+export function listDriverSafetyEvents(schoolId: number, driverId: number): Promise<SafetyEvent[]> {
+  return apiClient.get<ApiResponse<SafetyEvent[]>>(`/schools/${schoolId}/drivers/${driverId}/safety-events`).then(unwrap);
 }

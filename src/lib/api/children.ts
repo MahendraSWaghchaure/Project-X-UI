@@ -1,6 +1,7 @@
 import { apiClient, unwrap } from '@/lib/apiClient';
 import type { ApiResponse } from '@/types/api';
-import type { Child } from '@/types/people';
+import type { Child, ChildDriver } from '@/types/people';
+import type { ChildTripEvent } from '@/types/tracking';
 
 export interface CreateChildRequest {
   firstName: string;
@@ -32,6 +33,39 @@ export function listMyChildren(): Promise<Child[]> {
 
 export function createChildAsParent(request: CreateChildRequest): Promise<Child> {
   return apiClient.post<ApiResponse<Child>>('/parents/me/children', request).then(unwrap);
+}
+
+export function getMyChildDriver(childId: number): Promise<ChildDriver> {
+  return apiClient.get<ApiResponse<ChildDriver>>(`/parents/me/children/${childId}/driver`).then(unwrap);
+}
+
+export function setChildAbsence(childId: number, date: string): Promise<void> {
+  return apiClient.put<ApiResponse<void>>(`/parents/me/children/${childId}/absence`, { date }).then(unwrap);
+}
+
+export function clearChildAbsence(childId: number, date: string): Promise<void> {
+  return apiClient
+    .delete<ApiResponse<void>>(`/parents/me/children/${childId}/absence`, { params: { date } })
+    .then(unwrap);
+}
+
+export function getAttendanceHistory(childId: number, from: string, to: string): Promise<ChildTripEvent[]> {
+  return apiClient
+    .get<ApiResponse<ChildTripEvent[]>>(`/parents/me/children/${childId}/attendance`, { params: { from, to } })
+    .then(unwrap);
+}
+
+export function getMyChildQrToken(childId: number): Promise<string> {
+  return apiClient.get<ApiResponse<string>>(`/parents/me/children/${childId}/qr-token`).then(unwrap);
+}
+
+export function inviteSecondGuardian(childId: number, email: string, phone?: string) {
+  return apiClient
+    .post<ApiResponse<{ parentProfileId: number; email: string; inviteToken: string }>>(
+      `/parents/me/children/${childId}/invite-guardian`,
+      { email, phone },
+    )
+    .then(unwrap);
 }
 
 export function assignChildRouteStop(

@@ -1,17 +1,21 @@
 import { useMemo, useState } from 'react';
 import { MapContainer, Marker, Popup, TileLayer } from 'react-leaflet';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { listMyChildren } from '@/lib/api/children';
+import { useTranslation } from 'react-i18next';
+import { getMyChildDriver, listMyChildren } from '@/lib/api/children';
 import { getMyChildVehicleLocation } from '@/lib/api/tracking';
 import { getTodaysTripForMyChild, recordParentHomeArrival } from '@/lib/api/trips';
 import { useLiveVehicleLocation } from '@/hooks/useLiveVehicleLocation';
+import { useSosSubscription } from '@/hooks/useSosSubscription';
 import { vehicleIcon } from '@/lib/leafletIcons';
+import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card';
 
 const DEFAULT_CENTER: [number, number] = [20.5937, 78.9629]; // India, used only before any position is known
 
 export function TrackBusPage() {
+  const { t } = useTranslation();
   const { data: children } = useQuery({ queryKey: ['my-children'], queryFn: listMyChildren });
   const [selectedChildId, setSelectedChildId] = useState<number | null>(null);
   const childId = selectedChildId ?? children?.[0]?.id ?? null;
@@ -25,6 +29,14 @@ export function TrackBusPage() {
 
   const { location: liveLocation, connected } = useLiveVehicleLocation(restLocation?.vehicleId ?? null);
   const location = liveLocation ?? restLocation;
+  const sosEvent = useSosSubscription(location?.tripId ?? null);
+
+  const { data: driver } = useQuery({
+    queryKey: ['child-driver', childId],
+    queryFn: () => getMyChildDriver(childId!),
+    enabled: childId != null,
+    retry: false,
+  });
 
   const homeArrivalMutation = useMutation({
     mutationFn: async () => {
@@ -41,8 +53,15 @@ export function TrackBusPage() {
 
   return (
     <div className="flex flex-col gap-4">
+      {sosEvent && !sosEvent.resolved && (
+        <div className="rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm font-medium text-red-800">
+          {t('trackBus.sosBanner')}
+          {sosEvent.note ? `: ${sosEvent.note}` : ''}
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-900">Track Bus</h1>
+        <h1 className="text-2xl font-bold text-slate-900">{t('trackBus.title')}</h1>
         {children && children.length > 1 && (
           <select
             value={childId ?? ''}
@@ -78,27 +97,50 @@ export function TrackBusPage() {
         </div>
       </Card>
 
+      {driver && (
+        <Card>
+          <CardBody className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm text-slate-500">{t('trackBus.yourDriver')}</p>
+              <p className="font-medium text-slate-900">
+                {driver.firstName} {driver.lastName}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge tone={driver.verificationStatus === 'VERIFIED' ? 'success' : driver.verificationStatus === 'REJECTED' ? 'danger' : 'warning'}>
+                {driver.verificationStatus === 'VERIFIED' ? t('trackBus.verified') : driver.verificationStatus === 'REJECTED' ? t('trackBus.rejected') : t('trackBus.pending')}
+              </Badge>
+              <a
+                href={`tel:${driver.phone}`}
+                className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                {t('trackBus.callDriver')}
+              </a>
+            </div>
+          </CardBody>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
-          <CardTitle>Status</CardTitle>
+          <CardTitle>{t('trackBus.status')}</CardTitle>
         </CardHeader>
         <CardBody className="flex flex-col gap-3">
           <p className="text-sm text-slate-600">
-            Live connection: {connected ? <span className="text-green-600">connected</span> : <span className="text-slate-400">connecting&hellip;</span>}
+            {t('trackBus.liveConnection')}:{' '}
+            {connected ? <span className="text-green-600">{t('trackBus.connected')}</span> : <span className="text-slate-400">{t('trackBus.connecting')}</span>}
           </p>
-          {!location && <p className="text-sm text-slate-500">No live position yet for this child's bus.</p>}
+          {!location && <p className="text-sm text-slate-500">{t('trackBus.noPosition')}</p>}
           <Button
             variant="secondary"
             isLoading={homeArrivalMutation.isPending}
             disabled={childId == null}
             onClick={() => homeArrivalMutation.mutate()}
           >
-            Confirm my child reached home safely
+            {t('trackBus.confirmHomeArrival')}
           </Button>
-          {homeArrivalMutation.isSuccess && <p className="text-sm text-green-600">Thanks, marked as confirmed.</p>}
-          {homeArrivalMutation.isError && (
-            <p className="text-sm text-red-600">Could not confirm right now &mdash; there may be no drop-off trip today yet.</p>
-          )}
+          {homeArrivalMutation.isSuccess && <p className="text-sm text-green-600">{t('trackBus.confirmSuccess')}</p>}
+          {homeArrivalMutation.isError && <p className="text-sm text-red-600">{t('trackBus.confirmError')}</p>}
         </CardBody>
       </Card>
     </div>

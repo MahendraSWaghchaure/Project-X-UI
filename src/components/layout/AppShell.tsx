@@ -1,9 +1,25 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/lib/authStore';
 import { cn } from '@/lib/cn';
 import { Logo } from '@/components/ui/Logo';
 import type { Role } from '@/types/auth';
+
+function LanguageSwitcher() {
+  const { i18n } = useTranslation();
+  return (
+    <select
+      value={i18n.resolvedLanguage}
+      onChange={(e) => i18n.changeLanguage(e.target.value)}
+      className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs text-slate-600"
+      aria-label="Language"
+    >
+      <option value="en">EN</option>
+      <option value="hi">हिं</option>
+    </select>
+  );
+}
 
 interface NavItem {
   label: string;
@@ -123,6 +139,7 @@ export function AppShell() {
                 Track bus
               </button>
             )}
+            <LanguageSwitcher />
             {email && <span className="hidden text-sm text-slate-600 md:inline">{email}</span>}
             <button
               onClick={() => {

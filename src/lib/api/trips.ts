@@ -1,6 +1,6 @@
 import { apiClient, unwrap } from '@/lib/apiClient';
 import type { ApiResponse } from '@/types/api';
-import type { ChildTripEvent, ChildTripEventType, Trip, TripDirection } from '@/types/tracking';
+import type { ChildTripEvent, ChildTripEventType, Trip, TripDirection, TripManifestEntry } from '@/types/tracking';
 
 export function listTripsForSchool(schoolId: number, date: string): Promise<Trip[]> {
   return apiClient.get<ApiResponse<Trip[]>>(`/schools/${schoolId}/trips`, { params: { date } }).then(unwrap);
@@ -39,6 +39,16 @@ export function listChildTripEvents(tripId: number): Promise<ChildTripEvent[]> {
 export function recordDriverMarkedEvent(tripId: number, childId: number, eventType: ChildTripEventType): Promise<ChildTripEvent> {
   return apiClient
     .post<ApiResponse<ChildTripEvent>>(`/trips/${tripId}/child-events`, { childId, eventType })
+    .then(unwrap);
+}
+
+export function getTripManifest(tripId: number): Promise<TripManifestEntry[]> {
+  return apiClient.get<ApiResponse<TripManifestEntry[]>>(`/trips/${tripId}/manifest`).then(unwrap);
+}
+
+export function recordScannedEvent(tripId: number, qrToken: string, eventType: ChildTripEventType): Promise<ChildTripEvent> {
+  return apiClient
+    .post<ApiResponse<ChildTripEvent>>(`/trips/${tripId}/child-events/scan`, { qrToken, eventType })
     .then(unwrap);
 }
 
