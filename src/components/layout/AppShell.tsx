@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Menu, X } from 'lucide-react';
 import { useAuthStore } from '@/lib/authStore';
 import { cn } from '@/lib/cn';
 import { Logo } from '@/components/ui/Logo';
@@ -88,35 +89,83 @@ const TIME_FORMAT = new Intl.DateTimeFormat('en-IN', {
 export function AppShell() {
   const { role, email, clearSession } = useAuthStore();
   const navigate = useNavigate();
+  const location = useLocation();
   const now = useClock();
   const navItems = role ? NAV_BY_ROLE[role] : [];
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (!mobileNavOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [mobileNavOpen]);
+
+  const navLinks = (
+    <nav className="flex flex-1 flex-col gap-1 px-3">
+      {navItems.map((item) => (
+        <NavLink
+          key={item.to}
+          to={item.to}
+          className={({ isActive }) =>
+            cn(
+              'rounded-md px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100',
+              isActive && 'bg-blue-50 text-blue-700',
+            )
+          }
+        >
+          {item.label}
+        </NavLink>
+      ))}
+    </nav>
+  );
 
   return (
     <div className="flex min-h-screen">
-      <aside className="flex w-60 flex-col border-r border-slate-200 bg-white">
+      {/* Desktop sidebar: static column, lg and up. */}
+      <aside className="hidden w-60 flex-col border-r border-slate-200 bg-white lg:flex">
         <div className="px-5 py-5">
           <Logo size="sm" />
         </div>
-        <nav className="flex flex-1 flex-col gap-1 px-3">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) =>
-                cn(
-                  'rounded-md px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100',
-                  isActive && 'bg-blue-50 text-blue-700',
-                )
-              }
-            >
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
+        {navLinks}
       </aside>
+
+      {/* Mobile sidebar: off-canvas drawer below lg, toggled from the header hamburger. */}
+      {mobileNavOpen && (
+        <div className="fixed inset-0 z-40 lg:hidden">
+          <div className="absolute inset-0 bg-slate-900/50" onClick={() => setMobileNavOpen(false)} aria-hidden="true" />
+          <aside className="relative flex h-full w-64 flex-col bg-white shadow-xl">
+            <div className="flex items-center justify-between px-5 py-5">
+              <Logo size="sm" />
+              <button
+                onClick={() => setMobileNavOpen(false)}
+                aria-label="Close menu"
+                className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            {navLinks}
+          </aside>
+        </div>
+      )}
+
       <div className="flex flex-1 flex-col">
-        <header className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-3">
+        <header className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 sm:px-6">
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => setMobileNavOpen(true)}
+              aria-label="Open menu"
+              className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 lg:hidden"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
             <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
               {role ? ROLE_LABEL[role] : ''}
             </span>
@@ -126,17 +175,17 @@ export function AppShell() {
               <span className="tabular-nums">{TIME_FORMAT.format(now)}</span>
             </span>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             {role === 'PARENT' && (
               <button
                 onClick={() => navigate('/parent/track')}
                 title="Track bus live"
-                className="flex items-center gap-1.5 rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
+                className="flex items-center gap-1.5 rounded-md bg-blue-600 px-2.5 py-1.5 text-sm font-medium text-white hover:bg-blue-700 sm:px-3"
               >
-                <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0">
                   <path d="M10 2a6 6 0 0 0-6 6c0 4.5 6 10 6 10s6-5.5 6-10a6 6 0 0 0-6-6Zm0 8.25A2.25 2.25 0 1 1 10 5.75a2.25 2.25 0 0 1 0 4.5Z" />
                 </svg>
-                Track bus
+                <span className="hidden sm:inline">Track bus</span>
               </button>
             )}
             <LanguageSwitcher />
@@ -146,13 +195,13 @@ export function AppShell() {
                 clearSession();
                 window.location.assign('/login');
               }}
-              className="rounded-md px-3 py-1.5 text-sm font-medium text-slate-500 hover:bg-slate-100"
+              className="rounded-md px-2.5 py-1.5 text-sm font-medium text-slate-500 hover:bg-slate-100 sm:px-3"
             >
               Sign out
             </button>
           </div>
         </header>
-        <main className="flex-1 overflow-y-auto bg-slate-50 p-6">
+        <main className="flex-1 overflow-y-auto bg-slate-50 p-4 sm:p-6">
           <Outlet />
         </main>
       </div>

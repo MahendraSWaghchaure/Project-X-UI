@@ -1,6 +1,43 @@
 @import "tailwindcss";
 @import "leaflet/dist/leaflet.css";
 
+/*
+ * Design tokens, exposed as real Tailwind utilities (bg-brand-600, text-brand-600, ring-brand-500,
+ * etc.) via Tailwind 4's @theme directive - unlike the old :root custom properties below (kept only
+ * for legacy readers), these actually generate classes. Values currently mirror the existing
+ * blue/slate palette 1:1 so nothing visually changes yet; the pending visual-redesign pass repoints
+ * these to a new brand direction and the rest of the app picks it up without a find/replace.
+ */
+@theme {
+  --color-brand-50: #eff6ff;
+  --color-brand-100: #dbeafe;
+  --color-brand-200: #bfdbfe;
+  --color-brand-300: #93c5fd;
+  --color-brand-400: #60a5fa;
+  --color-brand-500: #3b82f6;
+  --color-brand-600: #2563eb;
+  --color-brand-700: #1d4ed8;
+  --color-brand-800: #1e40af;
+  --color-brand-900: #1e3a8a;
+
+  --color-success-50: #f0fdf4;
+  --color-success-100: #dcfce7;
+  --color-success-600: #16a34a;
+  --color-success-700: #15803d;
+
+  --color-warning-50: #fffbeb;
+  --color-warning-100: #fef3c7;
+  --color-warning-600: #d97706;
+  --color-warning-700: #b45309;
+
+  --color-danger-50: #fef2f2;
+  --color-danger-100: #fee2e2;
+  --color-danger-600: #dc2626;
+  --color-danger-700: #b91c1c;
+
+  --radius-card: 0.5rem;
+}
+
 :root {
   --color-brand: #2563eb;
   --color-brand-dark: #1d4ed8;
