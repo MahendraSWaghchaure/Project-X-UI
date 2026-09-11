@@ -1,13 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { listVehicles } from '@/lib/api/vehicles';
-import { listDrivers, listIndependentDrivers } from '@/lib/api/drivers';
-import { listRoutes } from '@/lib/api/routes';
-import { listChildrenForSchool } from '@/lib/api/children';
 import { listTripsForSchool } from '@/lib/api/trips';
 import { getSchool } from '@/lib/api/schools';
-import { listGrievancesForSchool } from '@/lib/api/grievances';
-import { listPayrollForSchool, listPaymentsForSchool } from '@/lib/api/payments';
+import { getSchoolDashboardStats } from '@/lib/api/stats';
 import { listActiveSos, resolveSos } from '@/lib/api/tracking';
 import { useAuthStore } from '@/lib/authStore';
 import { toast } from '@/lib/toastStore';
@@ -19,10 +14,6 @@ import type { TripStatus } from '@/types/tracking';
 
 function today(): string {
   return new Date().toISOString().slice(0, 10);
-}
-
-function thisMonthPrefix(): string {
-  return new Date().toISOString().slice(0, 7); // "YYYY-MM"
 }
 
 interface StatCardProps {
@@ -75,52 +66,28 @@ export function SchoolAdminDashboardPage() {
     },
     onError: () => toast.error('Could not resolve SOS'),
   });
-  const { data: vehicles } = useQuery({ queryKey: ['vehicles', schoolId], queryFn: () => listVehicles(schoolId!), enabled });
-  const { data: drivers } = useQuery({ queryKey: ['drivers', schoolId], queryFn: () => listDrivers(schoolId!), enabled });
-  const { data: routes } = useQuery({ queryKey: ['routes', schoolId], queryFn: () => listRoutes(schoolId!), enabled });
-  // size=1: this only needs the total count (PageResponse.totalElements), not the roster itself -
-  // a distinct query key from ChildrenPage's own full-roster query since they now pass different
-  // page/size args to the same paginated endpoint and must not share a cache entry.
-  const { data: childrenCount } = useQuery({
-    queryKey: ['children-count', schoolId],
-    queryFn: () => listChildrenForSchool(schoolId!, 0, 1),
-    select: (page) => page.totalElements,
+
+  // One indexed-aggregate call for every stat card below, instead of fetching every vehicle,
+  // driver, route, grievance, payment, and payroll row just to compute a length or a sum -
+  // stays cheap as a school's data grows, and refetchInterval keeps the numbers live.
+  const { data: stats } = useQuery({
+    queryKey: ['school-dashboard-stats', schoolId],
+    queryFn: () => getSchoolDashboardStats(schoolId!),
     enabled,
+    refetchInterval: 20000,
   });
+
+  // Still fetched separately (not from stats) because this page renders the actual trip rows,
+  // not just a count.
   const { data: trips } = useQuery({
     queryKey: ['trips', schoolId, today()],
     queryFn: () => listTripsForSchool(schoolId!, today()),
     enabled,
   });
-  const { data: grievances } = useQuery({
-    queryKey: ['grievances', schoolId],
-    queryFn: () => listGrievancesForSchool(schoolId!),
-    enabled,
-  });
-  const { data: payments } = useQuery({
-    queryKey: ['payments', schoolId],
-    queryFn: () => listPaymentsForSchool(schoolId!),
-    enabled,
-  });
-  const { data: payroll } = useQuery({
-    queryKey: ['payroll', schoolId],
-    queryFn: () => listPayrollForSchool(schoolId!),
-    enabled,
-  });
-  const { data: independentDrivers } = useQuery({
-    queryKey: ['independent-drivers'],
-    queryFn: listIndependentDrivers,
-  });
 
-  const activeVehicles = vehicles?.filter((v) => v.status === 'ACTIVE').length ?? 0;
-  const activeTrips = trips?.filter((t) => t.status === 'IN_PROGRESS' || t.status === 'DELAYED').length ?? 0;
-  const delayedTrips = trips?.filter((t) => t.status === 'DELAYED').length ?? 0;
-  const openGrievances = (grievances ?? []).filter((g) => g.status === 'OPEN' || g.status === 'IN_PROGRESS').length;
-  const revenueThisMonth = (payments ?? [])
-    .filter((p) => p.status === 'SUCCESS' && p.createdAt.startsWith(thisMonthPrefix()))
-    .reduce((sum, p) => sum + p.amount, 0);
-  const payrollFailed = (payroll ?? []).filter((r) => r.status === 'FAILED').length;
-  const payrollPending = (payroll ?? []).filter((r) => r.status === 'PENDING' || r.status === 'PROCESSING').length;
+  const delayedTrips = stats?.tripsDelayed ?? 0;
+  const payrollFailed = stats?.payrollFailed ?? 0;
+  const payrollPending = stats?.payrollPending ?? 0;
 
   return (
     <div className="flex flex-col gap-6">
@@ -164,21 +131,39 @@ export function SchoolAdminDashboardPage() {
       )}
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-        <StatCard label="Vehicles" value={vehicles?.length ?? '—'} hint={`${activeVehicles} active`} to="/school-admin/vehicles" />
+        <StatCard
+          label="Vehicles"
+          value={stats?.vehiclesTotal ?? '—'}
+          hint={stats ? `${stats.vehiclesActive} active` : undefined}
+          to="/school-admin/vehicles"
+        />
         <StatCard
           label="Drivers"
-          value={drivers?.length ?? '—'}
-          hint={independentDrivers && independentDrivers.length > 0 ? `${independentDrivers.length} available to hire` : undefined}
+          value={stats?.driversTotal ?? '—'}
+          hint={
+            stats && stats.independentDriversAvailable > 0
+              ? `${stats.independentDriversAvailable} available to hire`
+              : undefined
+          }
           to="/school-admin/drivers"
         />
-        <StatCard label="Routes" value={routes?.length ?? '—'} to="/school-admin/routes" />
-        <StatCard label="Students" value={childrenCount ?? '—'} to="/school-admin/children" />
-        <StatCard label="Trips today" value={trips?.length ?? '—'} hint={`${activeTrips} in progress`} to="/school-admin/trips" />
+        <StatCard label="Routes" value={stats?.routesTotal ?? '—'} to="/school-admin/routes" />
+        <StatCard label="Students" value={stats?.studentsTotal ?? '—'} to="/school-admin/children" />
+        <StatCard
+          label="Trips today"
+          value={stats?.tripsToday ?? '—'}
+          hint={stats ? `${stats.tripsInProgress} in progress` : undefined}
+          to="/school-admin/trips"
+        />
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-        <StatCard label="Open grievances" value={openGrievances} to="/school-admin/grievances" />
-        <StatCard label="Revenue this month" value={`₹${revenueThisMonth.toLocaleString('en-IN')}`} to="/school-admin/payments" />
+        <StatCard label="Open grievances" value={stats?.openGrievances ?? '—'} to="/school-admin/grievances" />
+        <StatCard
+          label="Revenue this month"
+          value={`₹${(stats?.revenueThisMonth ?? 0).toLocaleString('en-IN')}`}
+          to="/school-admin/payments"
+        />
         <StatCard
           label="Payroll this cycle"
           value={payrollPending > 0 ? `${payrollPending} pending` : payrollFailed > 0 ? `${payrollFailed} failed` : 'up to date'}

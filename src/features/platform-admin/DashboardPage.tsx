@@ -1,9 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { listSchools } from '@/lib/api/schools';
-import { listAllGrievances } from '@/lib/api/grievances';
-import { listAllWaiverRequests } from '@/lib/api/payments';
-import { listIndependentDrivers } from '@/lib/api/drivers';
+import { getPlatformDashboardStats } from '@/lib/api/stats';
 import { Card, CardBody } from '@/components/ui/Card';
 import { cn } from '@/lib/cn';
 
@@ -33,15 +30,16 @@ function StatCard({
 }
 
 export function PlatformAdminDashboardPage() {
-  const { data: schools, isLoading } = useQuery({ queryKey: ['schools'], queryFn: listSchools });
-  const { data: grievances } = useQuery({ queryKey: ['all-grievances'], queryFn: listAllGrievances });
-  const { data: waivers } = useQuery({ queryKey: ['all-waivers'], queryFn: listAllWaiverRequests });
-  const { data: independentDrivers } = useQuery({ queryKey: ['independent-drivers'], queryFn: listIndependentDrivers });
+  // A single indexed-aggregate call instead of fetching every school/grievance/waiver/driver row
+  // just to compute a length - stays cheap as the platform grows, and refetchInterval keeps the
+  // numbers live without a full page reload.
+  const { data: stats, isLoading } = useQuery({
+    queryKey: ['platform-dashboard-stats'],
+    queryFn: getPlatformDashboardStats,
+    refetchInterval: 20000,
+  });
 
-  const active = schools?.filter((s) => s.status === 'ACTIVE').length ?? 0;
-  const suspended = schools?.filter((s) => s.status === 'SUSPENDED').length ?? 0;
-  const openGrievances = (grievances ?? []).filter((g) => g.status === 'OPEN' || g.status === 'IN_PROGRESS').length;
-  const pendingWaivers = (waivers ?? []).filter((w) => w.status === 'PENDING').length;
+  const pendingWaivers = stats?.pendingWaivers ?? 0;
 
   return (
     <div className="flex flex-col gap-6">
@@ -62,10 +60,10 @@ export function PlatformAdminDashboardPage() {
       )}
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-        <StatCard label="Schools onboarded" value={isLoading ? '—' : (schools?.length ?? 0)} to="/platform-admin/schools" />
-        <StatCard label="Active" value={isLoading ? '—' : active} to="/platform-admin/schools" />
-        <StatCard label="Suspended" value={isLoading ? '—' : suspended} to="/platform-admin/schools" />
-        <StatCard label="Open grievances" value={openGrievances} to="/platform-admin/grievances" />
+        <StatCard label="Schools onboarded" value={isLoading ? '—' : (stats?.schoolsTotal ?? 0)} to="/platform-admin/schools" />
+        <StatCard label="Active" value={isLoading ? '—' : (stats?.schoolsActive ?? 0)} to="/platform-admin/schools" />
+        <StatCard label="Suspended" value={isLoading ? '—' : (stats?.schoolsSuspended ?? 0)} to="/platform-admin/schools" />
+        <StatCard label="Open grievances" value={stats?.openGrievances ?? 0} to="/platform-admin/grievances" />
         <StatCard
           label="Waivers pending"
           value={pendingWaivers}
@@ -74,7 +72,7 @@ export function PlatformAdminDashboardPage() {
         />
         <StatCard
           label="Independent drivers"
-          value={independentDrivers?.length ?? 0}
+          value={stats?.independentDriversUnclaimed ?? 0}
           hint="unclaimed pool"
         />
       </div>
