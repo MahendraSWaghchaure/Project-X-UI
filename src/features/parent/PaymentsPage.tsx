@@ -117,7 +117,11 @@ export function ParentPaymentsPage() {
   const [receiptPaymentId, setReceiptPaymentId] = useState<number | null>(null);
 
   const { data: invoices, isLoading: invoicesLoading } = useQuery({ queryKey: ['my-fee-invoices'], queryFn: listMyFeeInvoices });
-  const { data: payments, isLoading: paymentsLoading } = useQuery({ queryKey: ['my-payments'], queryFn: listMyPayments });
+  const { data: payments, isLoading: paymentsLoading } = useQuery({
+    queryKey: ['my-payments'],
+    queryFn: () => listMyPayments(0, 100),
+    select: (page) => page.content,
+  });
   const { data: children } = useQuery({ queryKey: ['my-children'], queryFn: listMyChildren });
 
   async function completeCheckout(order: { paymentId: number; razorpayOrderId: string; razorpayKeyId: string; amount: number }, description: string) {

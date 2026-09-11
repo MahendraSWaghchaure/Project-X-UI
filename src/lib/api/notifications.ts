@@ -1,5 +1,5 @@
 import { apiClient, unwrap } from '@/lib/apiClient';
-import type { ApiResponse } from '@/types/api';
+import type { ApiResponse, PageResponse } from '@/types/api';
 
 export interface NotificationRecord {
   id: number;
@@ -9,6 +9,8 @@ export interface NotificationRecord {
   createdAt: string;
 }
 
-export function listMyNotifications(): Promise<NotificationRecord[]> {
-  return apiClient.get<ApiResponse<NotificationRecord[]>>('/notifications/me').then(unwrap);
+export function listMyNotifications(page = 0, size?: number): Promise<PageResponse<NotificationRecord>> {
+  return apiClient
+    .get<ApiResponse<PageResponse<NotificationRecord>>>('/notifications/me', { params: { page, size } })
+    .then(unwrap);
 }

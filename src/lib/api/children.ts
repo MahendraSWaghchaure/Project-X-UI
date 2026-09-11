@@ -1,5 +1,5 @@
 import { apiClient, unwrap } from '@/lib/apiClient';
-import type { ApiResponse } from '@/types/api';
+import type { ApiResponse, PageResponse } from '@/types/api';
 import type { Child, ChildDriver } from '@/types/people';
 import type { ChildTripEvent } from '@/types/tracking';
 
@@ -15,8 +15,15 @@ export interface CreateChildRequest {
   allergies?: string;
 }
 
-export function listChildrenForSchool(schoolId: number): Promise<Child[]> {
-  return apiClient.get<ApiResponse<Child[]>>(`/schools/${schoolId}/children`).then(unwrap);
+/**
+ * Paginated - a large school can have hundreds of children. `size` defaults to the backend's own
+ * default (50) when omitted; pass a large size (e.g. 1000) for call sites that just need a full
+ * roster for a dropdown/count rather than a paged list, until those get real pagination controls.
+ */
+export function listChildrenForSchool(schoolId: number, page = 0, size?: number): Promise<PageResponse<Child>> {
+  return apiClient
+    .get<ApiResponse<PageResponse<Child>>>(`/schools/${schoolId}/children`, { params: { page, size } })
+    .then(unwrap);
 }
 
 export function listChildrenForRoute(schoolId: number, routeId: number): Promise<Child[]> {

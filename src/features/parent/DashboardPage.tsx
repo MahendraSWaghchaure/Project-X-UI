@@ -44,7 +44,7 @@ export function ParentDashboardPage() {
   const { data: children } = useQuery({ queryKey: ['my-children'], queryFn: listMyChildren });
   const { data: invoices } = useQuery({ queryKey: ['my-fee-invoices'], queryFn: listMyFeeInvoices });
   const { data: grievances } = useQuery({ queryKey: ['my-grievances'], queryFn: listMyGrievances });
-  const { data: notifications } = useQuery({ queryKey: ['my-notifications'], queryFn: listMyNotifications });
+  const { data: notifications } = useQuery({ queryKey: ['my-notifications'], queryFn: () => listMyNotifications(0, 20) });
   const { data: waivers } = useQuery({ queryKey: ['my-waivers'], queryFn: listMyWaiverRequests });
 
   const activeChildren = (children ?? []).filter((c) => c.status === 'ACTIVE');
@@ -54,7 +54,7 @@ export function ParentDashboardPage() {
   const nextDue = [...unpaidInvoices].sort((a, b) => a.dueDate.localeCompare(b.dueDate))[0];
   const openGrievances = (grievances ?? []).filter((g) => g.status === 'OPEN' || g.status === 'IN_PROGRESS').length;
   const pendingWaivers = (waivers ?? []).filter((w) => w.status === 'PENDING').length;
-  const recentNotifications = [...(notifications ?? [])]
+  const recentNotifications = [...(notifications?.content ?? [])]
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     .slice(0, 4);
 
@@ -85,7 +85,7 @@ export function ParentDashboardPage() {
           to="/parent/payments"
         />
         <StatCard label="Open grievances" value={openGrievances} to="/parent/grievances" />
-        <StatCard label="Notifications" value={notifications?.length ?? 0} to="/parent/notifications" />
+        <StatCard label="Notifications" value={notifications?.totalElements ?? 0} to="/parent/notifications" />
       </div>
 
       {overdueCount > 0 && (

@@ -48,7 +48,13 @@ export function InsurancePage() {
     queryFn: () => listInsurancePolicies(schoolId!),
     enabled,
   });
-  const { data: children } = useQuery({ queryKey: ['children', schoolId], queryFn: () => listChildrenForSchool(schoolId!), enabled });
+  const { data: children } = useQuery({
+    // Same key+args as ChildrenPage's roster query, deliberately - shares one cache entry instead of double-fetching.
+    queryKey: ['children', schoolId, 'roster'],
+    queryFn: () => listChildrenForSchool(schoolId!, 0, 200),
+    select: (page) => page.content,
+    enabled,
+  });
   const { data: drivers } = useQuery({ queryKey: ['drivers', schoolId], queryFn: () => listDrivers(schoolId!), enabled });
   const { data: vehicles } = useQuery({ queryKey: ['vehicles', schoolId], queryFn: () => listVehicles(schoolId!), enabled });
 

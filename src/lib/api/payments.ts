@@ -1,5 +1,5 @@
 import { apiClient, unwrap } from '@/lib/apiClient';
-import type { ApiResponse } from '@/types/api';
+import type { ApiResponse, PageResponse } from '@/types/api';
 import type {
   BankDetail,
   CreatePaymentOrder,
@@ -50,8 +50,8 @@ export function verifyPayment(paymentId: number, payload: VerifyPaymentPayload):
   return apiClient.post<ApiResponse<Payment>>(`/parents/me/payments/${paymentId}/verify`, payload).then(unwrap);
 }
 
-export function listMyPayments(): Promise<Payment[]> {
-  return apiClient.get<ApiResponse<Payment[]>>('/parents/me/payments').then(unwrap);
+export function listMyPayments(page = 0, size?: number): Promise<PageResponse<Payment>> {
+  return apiClient.get<ApiResponse<PageResponse<Payment>>>('/parents/me/payments', { params: { page, size } }).then(unwrap);
 }
 
 export function getMyReceipt(paymentId: number): Promise<Payment> {

@@ -6,7 +6,14 @@ import { Badge } from '@/components/ui/Badge';
 const CHANNEL_LABEL: Record<string, string> = { SMS: 'SMS', EMAIL: 'Email', PUSH: 'Push' };
 
 export function NotificationsPage() {
-  const { data: notifications, isLoading } = useQuery({ queryKey: ['my-notifications'], queryFn: listMyNotifications });
+  // Distinct key + larger size from the dashboard's own "recent glance" query against this same
+  // endpoint - different page/size args must not share a cache entry. A real Pagination control
+  // (with page.totalPages) lands here in the visual redesign pass.
+  const { data: notifications, isLoading } = useQuery({
+    queryKey: ['my-notifications', 'history'],
+    queryFn: () => listMyNotifications(0, 100),
+    select: (page) => page.content,
+  });
 
   return (
     <div className="flex flex-col gap-6">

@@ -78,9 +78,13 @@ export function SchoolAdminDashboardPage() {
   const { data: vehicles } = useQuery({ queryKey: ['vehicles', schoolId], queryFn: () => listVehicles(schoolId!), enabled });
   const { data: drivers } = useQuery({ queryKey: ['drivers', schoolId], queryFn: () => listDrivers(schoolId!), enabled });
   const { data: routes } = useQuery({ queryKey: ['routes', schoolId], queryFn: () => listRoutes(schoolId!), enabled });
-  const { data: children } = useQuery({
-    queryKey: ['children', schoolId],
-    queryFn: () => listChildrenForSchool(schoolId!),
+  // size=1: this only needs the total count (PageResponse.totalElements), not the roster itself -
+  // a distinct query key from ChildrenPage's own full-roster query since they now pass different
+  // page/size args to the same paginated endpoint and must not share a cache entry.
+  const { data: childrenCount } = useQuery({
+    queryKey: ['children-count', schoolId],
+    queryFn: () => listChildrenForSchool(schoolId!, 0, 1),
+    select: (page) => page.totalElements,
     enabled,
   });
   const { data: trips } = useQuery({
@@ -168,7 +172,7 @@ export function SchoolAdminDashboardPage() {
           to="/school-admin/drivers"
         />
         <StatCard label="Routes" value={routes?.length ?? '—'} to="/school-admin/routes" />
-        <StatCard label="Students" value={children?.length ?? '—'} to="/school-admin/children" />
+        <StatCard label="Students" value={childrenCount ?? '—'} to="/school-admin/children" />
         <StatCard label="Trips today" value={trips?.length ?? '—'} hint={`${activeTrips} in progress`} to="/school-admin/trips" />
       </div>
 

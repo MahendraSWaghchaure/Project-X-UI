@@ -16,3 +16,13 @@ export interface ApiResponse<T> {
   error: ApiErrorBody | null;
   timestamp: string;
 }
+
+// Mirrors backend/common/.../web/PageResponse.java - the `data` payload of a paginated endpoint's ApiResponse.
+export interface PageResponse<T> {
+  content: T[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  last: boolean;
+}

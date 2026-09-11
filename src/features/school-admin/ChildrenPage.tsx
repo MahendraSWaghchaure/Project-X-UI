@@ -158,8 +158,16 @@ export function ChildrenPage() {
   const [editingChildId, setEditingChildId] = useState<number | null>(null);
 
   const { data: children, isLoading } = useQuery({
-    queryKey: ['children', schoolId],
-    queryFn: () => listChildrenForSchool(schoolId!),
+    // 'roster' distinguishes this from DashboardPage's count-only query (different page/size args
+    // against the same now-paginated endpoint must not share a cache entry) and from
+    // InsurancePage's own full-roster query, which intentionally uses this exact same key+args to
+    // correctly share the cache instead of double-fetching.
+    queryKey: ['children', schoolId, 'roster'],
+    // 200 comfortably covers a real school's roster for now; a real Pagination control lands
+    // with the visual redesign pass, this just keeps today's "show the whole roster" behavior
+    // working against the now-paginated endpoint instead of silently truncating to its default.
+    queryFn: () => listChildrenForSchool(schoolId!, 0, 200),
+    select: (page) => page.content,
     enabled: schoolId != null,
   });
   const { data: parents, isLoading: parentsLoading } = useQuery({
