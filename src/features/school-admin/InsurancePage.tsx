@@ -21,6 +21,7 @@ import { Input } from '@/components/ui/Input';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import type { InsuredSubjectType } from '@/types/insurance';
+import { SkeletonTable } from '@/components/ui/Skeleton';
 
 const schema = z.object({
   subjectType: z.enum(['CHILD', 'DRIVER', 'VEHICLE']),
@@ -49,8 +50,10 @@ export function InsurancePage() {
     enabled,
   });
   const { data: children } = useQuery({
-    // Same key+args as ChildrenPage's roster query, deliberately - shares one cache entry instead of double-fetching.
-    queryKey: ['children', schoolId, 'roster'],
+    // Own dedicated full-list query - this page needs every child for the subject dropdown below,
+    // unlike ChildrenPage's own roster query, which now genuinely paginates (see its Pagination
+    // control) and so can no longer double as "give me everyone."
+    queryKey: ['children', schoolId, 'insurance-subjects'],
     queryFn: () => listChildrenForSchool(schoolId!, 0, 200),
     select: (page) => page.content,
     enabled,
@@ -190,7 +193,7 @@ export function InsurancePage() {
           <CardTitle>All policies</CardTitle>
         </CardHeader>
         <CardBody>
-          {isLoading && <p className="text-sm text-slate-500">Loading&hellip;</p>}
+          {isLoading && <SkeletonTable rows={4} columns={3} />}
           <ul className="divide-y divide-slate-100">
             {sortedPolicies.map((policy) => {
               const remaining = daysUntil(policy.endDate);

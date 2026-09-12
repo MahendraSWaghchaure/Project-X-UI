@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/Button';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import type { WaiverRequest } from '@/types/payment';
+import { SkeletonTable } from '@/components/ui/Skeleton';
 
 function WaiverReviewRow({ waiver }: { waiver: WaiverRequest }) {
   const queryClient = useQueryClient();
@@ -113,7 +114,7 @@ export function PlatformAdminPaymentsPage() {
           <p className="mt-1 text-sm text-slate-500">Reviewed by the platform admin, not individual schools.</p>
         </CardHeader>
         <CardBody>
-          {isLoading && <p className="text-sm text-slate-500">Loading&hellip;</p>}
+          {isLoading && <SkeletonTable rows={4} columns={3} />}
           <ul className="flex flex-col divide-y divide-slate-100">
             {pendingWaivers.map((waiver) => (
               <WaiverReviewRow key={waiver.id} waiver={waiver} />

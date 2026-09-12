@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card';
 import { GrievanceStatusBadge } from '@/components/grievance/GrievanceStatusBadge';
+import { SkeletonTable } from '@/components/ui/Skeleton';
 
 const CATEGORIES = ['SAFETY', 'VEHICLE_CONDITION', 'DRIVER_CONDUCT', 'PAYMENT', 'DELAY', 'OTHER'] as const;
 
@@ -117,7 +118,7 @@ export function ParentGrievancesPage() {
           <CardTitle>Your grievances</CardTitle>
         </CardHeader>
         <CardBody>
-          {isLoading && <p className="text-sm text-slate-500">Loading&hellip;</p>}
+          {isLoading && <SkeletonTable rows={4} columns={3} />}
           <ul className="flex flex-col divide-y divide-slate-100">
             {grievances?.map((g) => (
               <li key={g.id} className="flex flex-col gap-1 py-3">

@@ -19,6 +19,7 @@ import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { LocationPicker } from '@/components/ui/LocationPicker';
 import type { School } from '@/types/school';
+import { SkeletonTable } from '@/components/ui/Skeleton';
 
 const schema = z.object({
   name: z.string().min(1),
@@ -215,7 +216,7 @@ export function SchoolsPage() {
           <CardTitle>All schools</CardTitle>
         </CardHeader>
         <CardBody>
-          {isLoading && <p className="text-sm text-slate-500">Loading&hellip;</p>}
+          {isLoading && <SkeletonTable rows={4} columns={3} />}
           <ul className="flex flex-col divide-y divide-slate-100">
             {schools?.map((school) =>
               editingId === school.id ? (

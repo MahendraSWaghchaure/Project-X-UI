@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card';
 import { GrievanceStatusBadge } from '@/components/grievance/GrievanceStatusBadge';
 import type { Grievance, GrievanceStatus } from '@/types/grievance';
+import { SkeletonTable } from '@/components/ui/Skeleton';
 
 function ResolveRow({ grievance }: { grievance: Grievance }) {
   const queryClient = useQueryClient();
@@ -73,7 +74,7 @@ export function PlatformAdminGrievancesPage() {
           </p>
         </CardHeader>
         <CardBody>
-          {isLoading && <p className="text-sm text-slate-500">Loading&hellip;</p>}
+          {isLoading && <SkeletonTable rows={4} columns={3} />}
           <ul className="flex flex-col divide-y divide-slate-100">
             {grievances?.map((g) => (
               <li key={g.id} className="py-3">

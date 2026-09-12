@@ -21,6 +21,7 @@ import { Input } from '@/components/ui/Input';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import type { Driver } from '@/types/people';
+import { SkeletonTable } from '@/components/ui/Skeleton';
 
 const schema = z.object({
   firstName: z.string().min(1),
@@ -132,7 +133,7 @@ function IndependentDriversCard({ schoolId }: { schoolId: number }) {
         </p>
       </CardHeader>
       <CardBody>
-        {isLoading && <p className="text-sm text-slate-500">Loading&hellip;</p>}
+        {isLoading && <SkeletonTable rows={4} columns={3} />}
         <ul className="divide-y divide-slate-100">
           {independentDrivers?.map((driver) => (
             <li key={driver.id} className="flex items-center justify-between py-3">
@@ -242,7 +243,7 @@ export function DriversPage() {
           <CardTitle>Roster</CardTitle>
         </CardHeader>
         <CardBody>
-          {isLoading && <p className="text-sm text-slate-500">Loading&hellip;</p>}
+          {isLoading && <SkeletonTable rows={4} columns={3} />}
           <ul className="flex flex-col divide-y divide-slate-100">
             {drivers?.map((driver) =>
               editingId === driver.id ? (

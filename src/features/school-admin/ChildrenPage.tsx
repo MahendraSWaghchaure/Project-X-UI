@@ -20,7 +20,11 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { Pagination } from '@/components/ui/Pagination';
+import { SkeletonTable } from '@/components/ui/Skeleton';
 import type { Child } from '@/types/people';
+
+const CHILDREN_PAGE_SIZE = 25;
 
 const inviteSchema = z.object({
   email: z.string().email(),
@@ -156,20 +160,18 @@ export function ChildrenPage() {
   const queryClient = useQueryClient();
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [editingChildId, setEditingChildId] = useState<number | null>(null);
+  const [childrenPage, setChildrenPage] = useState(0);
 
-  const { data: children, isLoading } = useQuery({
+  const { data: childrenPageData, isLoading } = useQuery({
     // 'roster' distinguishes this from DashboardPage's count-only query (different page/size args
-    // against the same now-paginated endpoint must not share a cache entry) and from
-    // InsurancePage's own full-roster query, which intentionally uses this exact same key+args to
-    // correctly share the cache instead of double-fetching.
-    queryKey: ['children', schoolId, 'roster'],
-    // 200 comfortably covers a real school's roster for now; a real Pagination control lands
-    // with the visual redesign pass, this just keeps today's "show the whole roster" behavior
-    // working against the now-paginated endpoint instead of silently truncating to its default.
-    queryFn: () => listChildrenForSchool(schoolId!, 0, 200),
-    select: (page) => page.content,
+    // against the same paginated endpoint must not share a cache entry) - InsurancePage now runs
+    // its own separate full-list query instead of sharing this one, since it needs every child for
+    // a dropdown while this page genuinely paginates.
+    queryKey: ['children', schoolId, 'roster', childrenPage],
+    queryFn: () => listChildrenForSchool(schoolId!, childrenPage, CHILDREN_PAGE_SIZE),
     enabled: schoolId != null,
   });
+  const children = childrenPageData?.content;
   const { data: parents, isLoading: parentsLoading } = useQuery({
     queryKey: ['parents', schoolId],
     queryFn: () => listParentsForSchool(schoolId!),
@@ -257,7 +259,7 @@ export function ChildrenPage() {
           <CardTitle>Enrolled children</CardTitle>
         </CardHeader>
         <CardBody>
-          {isLoading && <p className="text-sm text-slate-500">Loading&hellip;</p>}
+          {isLoading && <SkeletonTable rows={5} columns={3} />}
           <ul className="flex flex-col divide-y divide-slate-100">
             {children?.map((child) =>
               editingChildId === child.id ? (
@@ -318,6 +320,16 @@ export function ChildrenPage() {
             )}
             {children?.length === 0 && <p className="py-3 text-sm text-slate-500">No children enrolled yet.</p>}
           </ul>
+          {childrenPageData && (
+            <Pagination
+              className="mt-4"
+              page={childrenPage}
+              totalPages={childrenPageData.totalPages}
+              totalElements={childrenPageData.totalElements}
+              pageSize={CHILDREN_PAGE_SIZE}
+              onPageChange={setChildrenPage}
+            />
+          )}
         </CardBody>
       </Card>
 
@@ -326,7 +338,7 @@ export function ChildrenPage() {
           <CardTitle>Parents</CardTitle>
         </CardHeader>
         <CardBody>
-          {parentsLoading && <p className="text-sm text-slate-500">Loading&hellip;</p>}
+          {parentsLoading && <SkeletonTable rows={4} columns={2} />}
           <ul className="divide-y divide-slate-100">
             {parents?.map((parent) => (
               <li key={parent.id} className="flex items-center justify-between gap-4 py-3">

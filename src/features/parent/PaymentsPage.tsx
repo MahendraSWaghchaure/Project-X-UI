@@ -16,7 +16,11 @@ import { openRazorpayCheckout } from '@/lib/razorpayCheckout';
 import { Button } from '@/components/ui/Button';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { Pagination } from '@/components/ui/Pagination';
+import { SkeletonTable } from '@/components/ui/Skeleton';
 import type { FeeInvoice, Payment } from '@/types/payment';
+
+const PAYMENTS_PAGE_SIZE = 20;
 
 const DISCOUNT_TIERS: { months: number; percent: number }[] = [
   { months: 3, percent: 5 },
@@ -115,13 +119,14 @@ export function ParentPaymentsPage() {
   const [advanceChildId, setAdvanceChildId] = useState<number | ''>('');
   const [advanceMonths, setAdvanceMonths] = useState(3);
   const [receiptPaymentId, setReceiptPaymentId] = useState<number | null>(null);
+  const [paymentsPage, setPaymentsPage] = useState(0);
 
   const { data: invoices, isLoading: invoicesLoading } = useQuery({ queryKey: ['my-fee-invoices'], queryFn: listMyFeeInvoices });
-  const { data: payments, isLoading: paymentsLoading } = useQuery({
-    queryKey: ['my-payments'],
-    queryFn: () => listMyPayments(0, 100),
-    select: (page) => page.content,
+  const { data: paymentsPageData, isLoading: paymentsLoading } = useQuery({
+    queryKey: ['my-payments', paymentsPage],
+    queryFn: () => listMyPayments(paymentsPage, PAYMENTS_PAGE_SIZE),
   });
+  const payments = paymentsPageData?.content;
   const { data: children } = useQuery({ queryKey: ['my-children'], queryFn: listMyChildren });
 
   async function completeCheckout(order: { paymentId: number; razorpayOrderId: string; razorpayKeyId: string; amount: number }, description: string) {
@@ -174,7 +179,7 @@ export function ParentPaymentsPage() {
           </p>
         </CardHeader>
         <CardBody>
-          {invoicesLoading && <p className="text-sm text-slate-500">Loading&hellip;</p>}
+          {invoicesLoading && <SkeletonTable rows={3} columns={3} />}
           <ul className="flex flex-col divide-y divide-slate-100">
             {invoices?.map((invoice) => (
               <li key={invoice.id} className="py-3">
@@ -282,7 +287,7 @@ export function ParentPaymentsPage() {
           <CardTitle>Payment history &amp; receipts</CardTitle>
         </CardHeader>
         <CardBody>
-          {paymentsLoading && <p className="text-sm text-slate-500">Loading&hellip;</p>}
+          {paymentsLoading && <SkeletonTable rows={5} columns={3} />}
           <ul className="flex flex-col divide-y divide-slate-100">
             {payments?.map((payment) => (
               <li key={payment.id} className="py-3">
@@ -316,6 +321,16 @@ export function ParentPaymentsPage() {
             ))}
             {payments?.length === 0 && <p className="py-3 text-sm text-slate-500">No payments yet.</p>}
           </ul>
+          {paymentsPageData && (
+            <Pagination
+              className="mt-4"
+              page={paymentsPage}
+              totalPages={paymentsPageData.totalPages}
+              totalElements={paymentsPageData.totalElements}
+              pageSize={PAYMENTS_PAGE_SIZE}
+              onPageChange={setPaymentsPage}
+            />
+          )}
         </CardBody>
       </Card>
     </div>

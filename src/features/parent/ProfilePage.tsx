@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card';
 import { LocationPicker } from '@/components/ui/LocationPicker';
+import { SkeletonTable } from '@/components/ui/Skeleton';
 
 const schema = z.object({
   firstName: z.string().min(1),
@@ -65,7 +66,7 @@ export function ParentProfilePage() {
           </p>
         </CardHeader>
         <CardBody>
-          {isLoading && <p className="text-sm text-slate-500">Loading&hellip;</p>}
+          {isLoading && <SkeletonTable rows={4} columns={3} />}
           <form onSubmit={handleSubmit((values) => mutation.mutate(values))} className="flex flex-col gap-4">
             <Input label="First name" error={errors.firstName?.message} {...register('firstName')} />
             <Input label="Last name" error={errors.lastName?.message} {...register('lastName')} />

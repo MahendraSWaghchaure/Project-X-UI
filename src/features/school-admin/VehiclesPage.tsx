@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/Input';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import type { Vehicle } from '@/types/school';
+import { SkeletonTable } from '@/components/ui/Skeleton';
 
 // Uppercase, letters and digits only - matches the backend's validation exactly (see
 // CreateVehicleRequest/UpdateVehicleRequest) so a rejected value fails fast client-side instead
@@ -169,7 +170,7 @@ export function VehiclesPage() {
           <CardTitle>Fleet</CardTitle>
         </CardHeader>
         <CardBody>
-          {isLoading && <p className="text-sm text-slate-500">Loading&hellip;</p>}
+          {isLoading && <SkeletonTable rows={4} columns={3} />}
           <ul className="flex flex-col divide-y divide-slate-100">
             {vehicles?.map((vehicle) =>
               editingId === vehicle.id ? (

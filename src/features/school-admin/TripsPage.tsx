@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import type { TripDirection, TripStatus } from '@/types/tracking';
+import { SkeletonTable } from '@/components/ui/Skeleton';
 
 const STATUS_TONE: Record<TripStatus, 'neutral' | 'success' | 'warning' | 'danger' | 'info'> = {
   SCHEDULED: 'neutral',
@@ -106,7 +107,7 @@ export function TripsPage() {
           <CardTitle>Trips on {date}</CardTitle>
         </CardHeader>
         <CardBody>
-          {isLoading && <p className="text-sm text-slate-500">Loading&hellip;</p>}
+          {isLoading && <SkeletonTable rows={4} columns={3} />}
           <ul className="divide-y divide-slate-100">
             {trips?.map((trip) => (
               <li key={trip.id} className="flex items-center justify-between py-3">

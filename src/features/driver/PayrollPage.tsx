@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { SkeletonTable } from '@/components/ui/Skeleton';
 
 const schema = z.object({
   accountHolderName: z.string().min(1),
@@ -112,7 +113,7 @@ export function DriverPayrollPage() {
           </p>
         </CardHeader>
         <CardBody>
-          {bankLoading && <p className="text-sm text-slate-500">Loading&hellip;</p>}
+          {bankLoading && <SkeletonTable rows={4} columns={3} />}
           {bankDetails && (
             <p className="mb-3 text-sm text-slate-600">
               Currently on file: {bankDetails.accountHolderName}, account ending {bankDetails.maskedAccountNumber.slice(-4)},{' '}
@@ -154,7 +155,7 @@ export function DriverPayrollPage() {
           <CardTitle>Salary history</CardTitle>
         </CardHeader>
         <CardBody>
-          {payrollLoading && <p className="text-sm text-slate-500">Loading&hellip;</p>}
+          {payrollLoading && <SkeletonTable rows={4} columns={3} />}
           <ul className="flex flex-col divide-y divide-slate-100">
             {payroll?.map((record) => (
               <li key={record.id} className="py-3">

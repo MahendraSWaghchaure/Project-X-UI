@@ -15,6 +15,7 @@ import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { QrScanner } from '@/components/QrScanner';
 import type { ChildTripEventType, Trip, TripStatus } from '@/types/tracking';
+import { SkeletonTable } from '@/components/ui/Skeleton';
 
 const STATUS_TONE: Record<TripStatus, 'neutral' | 'success' | 'warning' | 'danger' | 'info'> = {
   SCHEDULED: 'neutral',
@@ -75,7 +76,7 @@ export function DriverTripsPage() {
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-2xl font-bold text-slate-900">Today's Trips</h1>
-      {isLoading && <p className="text-sm text-slate-500">Loading&hellip;</p>}
+      {isLoading && <SkeletonTable rows={4} columns={3} />}
       {trips?.length === 0 && <p className="text-sm text-slate-500">No trips scheduled for you today.</p>}
 
       {trips?.map((trip) => (

@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/Input';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import type { PayrollRecord } from '@/types/payment';
+import { SkeletonTable } from '@/components/ui/Skeleton';
 
 function IncentiveEditor({ schoolId, driverId, record }: { schoolId: number; driverId: number; record?: PayrollRecord }) {
   const queryClient = useQueryClient();
@@ -135,7 +136,7 @@ export function PaymentsPage() {
           <CardTitle>Fee invoices</CardTitle>
         </CardHeader>
         <CardBody>
-          {invoicesLoading && <p className="text-sm text-slate-500">Loading&hellip;</p>}
+          {invoicesLoading && <SkeletonTable rows={4} columns={3} />}
           <ul className="flex flex-col divide-y divide-slate-100">
             {invoices?.map((invoice) => (
               <li key={invoice.id} className="flex items-center justify-between gap-4 py-3">
@@ -172,7 +173,7 @@ export function PaymentsPage() {
           <CardTitle>Payments received</CardTitle>
         </CardHeader>
         <CardBody>
-          {paymentsLoading && <p className="text-sm text-slate-500">Loading&hellip;</p>}
+          {paymentsLoading && <SkeletonTable rows={4} columns={3} />}
           <ul className="flex flex-col divide-y divide-slate-100">
             {payments?.map((payment) => (
               <li key={payment.id} className="flex items-center justify-between gap-4 py-3">
@@ -202,7 +203,7 @@ export function PaymentsPage() {
           </p>
         </CardHeader>
         <CardBody>
-          {payrollLoading && <p className="text-sm text-slate-500">Loading&hellip;</p>}
+          {payrollLoading && <SkeletonTable rows={4} columns={3} />}
           <ul className="flex flex-col divide-y divide-slate-100">
             {drivers?.map((driver) => {
               const record = payroll?.find((p) => p.driverId === driver.id);

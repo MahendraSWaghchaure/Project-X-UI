@@ -23,6 +23,7 @@ import { Input } from '@/components/ui/Input';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import type { Child } from '@/types/people';
+import { SkeletonTable } from '@/components/ui/Skeleton';
 
 const schema = z.object({
   firstName: z.string().min(1),
@@ -229,7 +230,7 @@ function ChildAttendancePanel({ childId }: { childId: number }) {
   return (
     <div className="flex flex-col gap-1 rounded-md border border-slate-200 p-3">
       <p className="text-sm font-medium text-slate-700">Last 30 days</p>
-      {isLoading && <p className="text-sm text-slate-500">Loading&hellip;</p>}
+      {isLoading && <SkeletonTable rows={4} columns={3} />}
       <ul className="flex flex-col divide-y divide-slate-100 text-sm">
         {events?.map((event) => (
           <li key={event.id} className="flex items-center justify-between py-1.5">
@@ -396,7 +397,7 @@ export function ParentChildrenPage() {
           <CardTitle>Children</CardTitle>
         </CardHeader>
         <CardBody>
-          {isLoading && <p className="text-sm text-slate-500">Loading&hellip;</p>}
+          {isLoading && <SkeletonTable rows={4} columns={3} />}
           <ul className="flex flex-col divide-y divide-slate-100">
             {children?.map((child) =>
               editingId === child.id ? (

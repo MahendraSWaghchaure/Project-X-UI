@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/Input';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card';
 import { LocationPicker } from '@/components/ui/LocationPicker';
 import type { Route } from '@/types/school';
+import { SkeletonTable } from '@/components/ui/Skeleton';
 
 const stopSchema = z.object({
   label: z.string().min(1),
@@ -199,7 +200,7 @@ export function RoutesPage() {
           <CardTitle>Routes</CardTitle>
         </CardHeader>
         <CardBody>
-          {isLoading && <p className="text-sm text-slate-500">Loading&hellip;</p>}
+          {isLoading && <SkeletonTable rows={4} columns={3} />}
           <ul className="flex flex-col gap-4">
             {routes?.map((route) => (
               <li key={route.id} className="rounded-md border border-slate-200 p-3">
