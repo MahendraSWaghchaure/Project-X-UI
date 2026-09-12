@@ -116,7 +116,7 @@ export function AppShell() {
           className={({ isActive }) =>
             cn(
               'rounded-md px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100',
-              isActive && 'bg-blue-50 text-blue-700',
+              isActive && 'bg-blue-600 text-white font-semibold hover:bg-blue-600',
             )
           }
         >

@@ -1,60 +1,161 @@
 @import "tailwindcss";
 @import "leaflet/dist/leaflet.css";
+@import url("https://fonts.googleapis.com/css2?family=Spectral:wght@500;600;700&family=Public+Sans:wght@400;500;600;700&display=swap");
 
 /*
- * Design tokens, exposed as real Tailwind utilities (bg-brand-600, text-brand-600, ring-brand-500,
- * etc.) via Tailwind 4's @theme directive - unlike the old :root custom properties below (kept only
- * for legacy readers), these actually generate classes. Values currently mirror the existing
- * blue/slate palette 1:1 so nothing visually changes yet; the pending visual-redesign pass repoints
- * these to a new brand direction and the rest of the app picks it up without a find/replace.
+ * "Trust Editorial" brand direction - deep navy + warm cream paper + amber accent, Spectral serif
+ * headlines over Public Sans body. Approved from the design canvas mockup (login/track-bus/
+ * admin-dashboard screens) before this rollout.
+ *
+ * Rather than hand-editing ~350 hardcoded `slate-*`/`blue-*`/etc. utility classes across 36 feature
+ * pages, this repoints Tailwind's OWN built-in color scales (see the "Legacy palette overrides"
+ * block below) - every existing `bg-slate-50`, `text-blue-600`, `bg-red-600` etc. picks up the new
+ * palette automatically, application-wide, with no per-page changes. New/future code should prefer
+ * the semantic names (brand/success/warning/danger) instead of blue/green/amber/red directly - both
+ * resolve to the same values today, but the semantic names are what a future palette swap targets.
  */
 @theme {
-  --color-brand-50: #eff6ff;
-  --color-brand-100: #dbeafe;
-  --color-brand-200: #bfdbfe;
-  --color-brand-300: #93c5fd;
-  --color-brand-400: #60a5fa;
-  --color-brand-500: #3b82f6;
-  --color-brand-600: #2563eb;
-  --color-brand-700: #1d4ed8;
-  --color-brand-800: #1e40af;
-  --color-brand-900: #1e3a8a;
+  --color-brand-50: #eef1f7;
+  --color-brand-100: #dce3ef;
+  --color-brand-200: #bfcbe0;
+  --color-brand-300: #94a8cc;
+  --color-brand-400: #6c84af;
+  --color-brand-500: #445f8c;
+  --color-brand-600: #16233f;
+  --color-brand-700: #101a30;
+  --color-brand-800: #0b1322;
+  --color-brand-900: #070d17;
+  --color-brand-950: #04080e;
 
-  --color-success-50: #f0fdf4;
-  --color-success-100: #dcfce7;
-  --color-success-600: #16a34a;
-  --color-success-700: #15803d;
+  --color-accent-50: #fdf8ee;
+  --color-accent-100: #f6e6c9;
+  --color-accent-200: #edd39d;
+  --color-accent-300: #e6bd6e;
+  --color-accent-400: #e2a23b;
+  --color-accent-500: #cb8a2c;
+  --color-accent-600: #b4791f;
+  --color-accent-700: #96631a;
 
-  --color-warning-50: #fffbeb;
-  --color-warning-100: #fef3c7;
-  --color-warning-600: #d97706;
-  --color-warning-700: #b45309;
+  --color-success-50: #eff7f2;
+  --color-success-100: #dceee3;
+  --color-success-200: #b9ddc8;
+  --color-success-300: #8fc7a9;
+  --color-success-400: #64ac88;
+  --color-success-500: #4b9c74;
+  --color-success-600: #3f8f6c;
+  --color-success-700: #327259;
+  --color-success-800: #275846;
+  --color-success-900: #1d4234;
 
-  --color-danger-50: #fef2f2;
-  --color-danger-100: #fee2e2;
-  --color-danger-600: #dc2626;
-  --color-danger-700: #b91c1c;
+  --color-warning-50: #fdf8ee;
+  --color-warning-100: #f6e6c9;
+  --color-warning-200: #edd39d;
+  --color-warning-300: #e6bd6e;
+  --color-warning-400: #e2a23b;
+  --color-warning-500: #cb8a2c;
+  --color-warning-600: #b4791f;
+  --color-warning-700: #96631a;
+  --color-warning-800: #7a5015;
+  --color-warning-900: #5c3d10;
 
-  --radius-card: 0.5rem;
+  --color-danger-50: #fbf0ed;
+  --color-danger-100: #f7e4df;
+  --color-danger-200: #efc7bb;
+  --color-danger-300: #e2a48f;
+  --color-danger-400: #d17d62;
+  --color-danger-500: #c85a3c;
+  --color-danger-600: #c1432d;
+  --color-danger-700: #9c4735;
+  --color-danger-800: #7a3527;
+  --color-danger-900: #5c281e;
+
+  --radius-card: 0.75rem;
+  --font-display: "Spectral", ui-serif, Georgia, serif;
+  --font-sans: "Public Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  /* Legacy palette overrides - see the note above. Same values as brand/success/warning/danger above. */
+  --color-slate-50: #f8f5ef;
+  --color-slate-100: #f1ece0;
+  --color-slate-200: #e7e0d0;
+  --color-slate-300: #d6ccb5;
+  --color-slate-400: #aea284;
+  --color-slate-500: #8a8267;
+  --color-slate-600: #6b6250;
+  --color-slate-700: #4a4437;
+  --color-slate-800: #2c2a24;
+  --color-slate-900: #1c2130;
+  --color-slate-950: #10131c;
+
+  --color-blue-50: #eef1f7;
+  --color-blue-100: #dce3ef;
+  --color-blue-200: #bfcbe0;
+  --color-blue-300: #94a8cc;
+  --color-blue-400: #6c84af;
+  --color-blue-500: #445f8c;
+  --color-blue-600: #16233f;
+  --color-blue-700: #101a30;
+  --color-blue-800: #0b1322;
+  --color-blue-900: #070d17;
+  --color-blue-950: #04080e;
+
+  --color-red-50: #fbf0ed;
+  --color-red-100: #f7e4df;
+  --color-red-200: #efc7bb;
+  --color-red-300: #e2a48f;
+  --color-red-400: #d17d62;
+  --color-red-500: #c85a3c;
+  --color-red-600: #c1432d;
+  --color-red-700: #9c4735;
+  --color-red-800: #7a3527;
+  --color-red-900: #5c281e;
+
+  --color-green-50: #eff7f2;
+  --color-green-100: #dceee3;
+  --color-green-200: #b9ddc8;
+  --color-green-300: #8fc7a9;
+  --color-green-400: #64ac88;
+  --color-green-500: #4b9c74;
+  --color-green-600: #3f8f6c;
+  --color-green-700: #327259;
+  --color-green-800: #275846;
+  --color-green-900: #1d4234;
+
+  --color-amber-50: #fdf8ee;
+  --color-amber-100: #f6e6c9;
+  --color-amber-200: #edd39d;
+  --color-amber-300: #e6bd6e;
+  --color-amber-400: #e2a23b;
+  --color-amber-500: #cb8a2c;
+  --color-amber-600: #b4791f;
+  --color-amber-700: #96631a;
+  --color-amber-800: #7a5015;
+  --color-amber-900: #5c3d10;
 }
 
 :root {
-  --color-brand: #2563eb;
-  --color-brand-dark: #1d4ed8;
-  --color-bg: #f8fafc;
+  --color-brand: #16233f;
+  --color-brand-dark: #101a30;
+  --color-bg: #f7f3ec;
   --color-surface: #ffffff;
-  --color-border: #e2e8f0;
-  --color-text: #0f172a;
-  --color-text-muted: #64748b;
-  --color-danger: #dc2626;
-  --color-warning: #d97706;
-  --color-success: #16a34a;
+  --color-border: #e9e3d6;
+  --color-text: #1c2130;
+  --color-text-muted: #8a8267;
+  --color-danger: #c1432d;
+  --color-warning: #b4791f;
+  --color-success: #3f8f6c;
 }
 
 body {
   background-color: var(--color-bg);
   color: var(--color-text);
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-sans);
+}
+
+/* Every page defines its own <h1> inline rather than through a shared component, so the display
+   serif is applied here once instead of touching every page - the rest of the type scale (card
+   titles, body text) stays on the sans body face, matching the approved mockup's hierarchy. */
+h1 {
+  font-family: var(--font-display);
 }
 
 /* Leaflet's default marker icon lookup breaks under bundlers - see src/lib/leafletIcons.ts for the fix this class supports. */

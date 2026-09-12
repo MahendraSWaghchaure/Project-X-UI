@@ -1,7 +1,7 @@
 import type { ButtonHTMLAttributes } from 'react';
 import { cn } from '@/lib/cn';
 
-type Variant = 'primary' | 'secondary' | 'danger' | 'ghost';
+type Variant = 'primary' | 'secondary' | 'danger' | 'ghost' | 'accent';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;
@@ -13,6 +13,8 @@ const variantClasses: Record<Variant, string> = {
   secondary: 'bg-white text-slate-900 border border-slate-300 hover:bg-slate-50',
   danger: 'bg-red-600 text-white hover:bg-red-700 disabled:bg-red-300',
   ghost: 'text-slate-700 hover:bg-slate-100',
+  /** The single warm accent, reserved for one hero call-to-action per screen (e.g. the login submit) rather than every primary button - see the design canvas mockup. */
+  accent: 'bg-accent-400 text-blue-600 hover:bg-accent-500 disabled:bg-accent-100',
 };
 
 export function Button({ variant = 'primary', isLoading, className, disabled, children, ...props }: ButtonProps) {
