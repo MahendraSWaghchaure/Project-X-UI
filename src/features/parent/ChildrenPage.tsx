@@ -24,6 +24,7 @@ import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import type { Child } from '@/types/people';
 import { SkeletonTable } from '@/components/ui/Skeleton';
+import { optionalPhoneSchema } from '@/lib/validation';
 
 const schema = z.object({
   firstName: z.string().min(1),
@@ -33,7 +34,7 @@ const schema = z.object({
   section: z.string().optional(),
   bloodType: z.string().optional(),
   emergencyContactName: z.string().optional(),
-  emergencyContactPhone: z.string().optional(),
+  emergencyContactPhone: optionalPhoneSchema,
   allergies: z.string().optional(),
 });
 type FormValues = z.infer<typeof schema>;

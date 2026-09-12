@@ -22,26 +22,27 @@ import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import type { Driver } from '@/types/people';
 import { SkeletonTable } from '@/components/ui/Skeleton';
+import { phoneSchema } from '@/lib/validation';
 
 const schema = z.object({
   firstName: z.string().min(1),
   lastName: z.string().min(1),
   email: z.string().email(),
   password: z.string().min(8),
-  phone: z.string().min(1),
+  phone: phoneSchema,
   licenseNumber: z.string().min(1),
   licenseExpiry: z.string().optional(),
-  baseSalaryMonthly: z.coerce.number().optional(),
+  baseSalaryMonthly: z.coerce.number().min(0).optional(),
 });
 type FormValues = z.infer<typeof schema>;
 
 const editSchema = z.object({
   firstName: z.string().min(1),
   lastName: z.string().min(1),
-  phone: z.string().min(1),
+  phone: phoneSchema,
   licenseNumber: z.string().min(1),
   licenseExpiry: z.string().optional(),
-  baseSalaryMonthly: z.coerce.number().optional(),
+  baseSalaryMonthly: z.coerce.number().min(0).optional(),
 });
 type EditFormValues = z.infer<typeof editSchema>;
 

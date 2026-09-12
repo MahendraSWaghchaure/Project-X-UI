@@ -10,13 +10,14 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Logo } from '@/components/ui/Logo';
+import { phoneSchema } from '@/lib/validation';
 
 const schema = z.object({
   firstName: z.string().min(1),
   lastName: z.string().min(1),
   email: z.string().email(),
   password: z.string().min(8),
-  phone: z.string().min(1),
+  phone: phoneSchema,
   licenseNumber: z.string().min(1),
   licenseExpiry: z.string().optional(),
   vehicleRegistrationNumber: z

@@ -22,13 +22,14 @@ import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Pagination } from '@/components/ui/Pagination';
 import { SkeletonTable } from '@/components/ui/Skeleton';
+import { optionalPhoneSchema } from '@/lib/validation';
 import type { Child } from '@/types/people';
 
 const CHILDREN_PAGE_SIZE = 25;
 
 const inviteSchema = z.object({
   email: z.string().email(),
-  phone: z.string().optional(),
+  phone: optionalPhoneSchema,
 });
 type InviteFormValues = z.infer<typeof inviteSchema>;
 
@@ -40,7 +41,7 @@ const editChildSchema = z.object({
   section: z.string().optional(),
   bloodType: z.string().optional(),
   emergencyContactName: z.string().optional(),
-  emergencyContactPhone: z.string().optional(),
+  emergencyContactPhone: optionalPhoneSchema,
   allergies: z.string().optional(),
 });
 type EditChildFormValues = z.infer<typeof editChildSchema>;

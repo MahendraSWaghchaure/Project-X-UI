@@ -20,12 +20,13 @@ import { Badge } from '@/components/ui/Badge';
 import { LocationPicker } from '@/components/ui/LocationPicker';
 import type { School } from '@/types/school';
 import { SkeletonTable } from '@/components/ui/Skeleton';
+import { optionalPhoneSchema } from '@/lib/validation';
 
 const schema = z.object({
   name: z.string().min(1),
   address: z.string().min(1),
   city: z.string().min(1),
-  contactPhone: z.string().optional(),
+  contactPhone: optionalPhoneSchema,
   contactEmail: z.string().email().optional().or(z.literal('')),
   latitude: z.number().optional(),
   longitude: z.number().optional(),
@@ -42,7 +43,7 @@ const editSchema = z.object({
   city: z.string().min(1),
   state: z.string().optional(),
   pincode: z.string().optional(),
-  contactPhone: z.string().optional(),
+  contactPhone: optionalPhoneSchema,
   contactEmail: z.string().email().optional().or(z.literal('')),
   latitude: z.number().optional(),
   longitude: z.number().optional(),

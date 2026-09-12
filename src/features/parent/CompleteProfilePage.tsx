@@ -8,11 +8,12 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card';
 import { LocationPicker } from '@/components/ui/LocationPicker';
+import { phoneSchema } from '@/lib/validation';
 
 const schema = z.object({
   firstName: z.string().min(1),
   lastName: z.string().min(1),
-  phone: z.string().min(1),
+  phone: phoneSchema,
   address: z.string().min(1),
   latitude: z.number().optional(),
   longitude: z.number().optional(),
