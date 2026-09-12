@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { BrowserQRCodeReader, IScannerControls } from '@zxing/browser';
+import { BrowserQRCodeReader } from '@zxing/browser';
+import type { IScannerControls } from '@zxing/browser';
 import { Button } from '@/components/ui/Button';
 
 interface QrScannerProps {

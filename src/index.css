@@ -1,6 +1,6 @@
 @import "tailwindcss";
 @import "leaflet/dist/leaflet.css";
-@import url("https://fonts.googleapis.com/css2?family=Spectral:wght@500;600;700&family=Public+Sans:wght@400;500;600;700&display=swap");
+/* Spectral/Public Sans are loaded via a <link> in index.html (a CSS @import here would land after Tailwind's own generated rules once bundled, which is invalid - @import must precede all other rules). */
 
 /*
  * "Trust Editorial" brand direction - deep navy + warm cream paper + amber accent, Spectral serif

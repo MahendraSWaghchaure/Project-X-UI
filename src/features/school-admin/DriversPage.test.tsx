@@ -28,6 +28,8 @@ const activeDriver: Driver = {
   baseSalaryMonthly: null,
   vehicleId: null,
   employmentStatus: 'ACTIVE',
+  verificationStatus: 'PENDING',
+  verifiedAt: null,
 };
 
 const independentDriver: Driver = {
