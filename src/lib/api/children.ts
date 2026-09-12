@@ -66,7 +66,8 @@ export function getMyChildQrToken(childId: number): Promise<string> {
   return apiClient.get<ApiResponse<string>>(`/parents/me/children/${childId}/qr-token`).then(unwrap);
 }
 
-export function inviteSecondGuardian(childId: number, email: string, phone?: string) {
+/** Any existing guardian can invite another - unlimited, not capped at two. */
+export function inviteGuardian(childId: number, email: string, phone?: string) {
   return apiClient
     .post<ApiResponse<{ parentProfileId: number; email: string; inviteToken: string }>>(
       `/parents/me/children/${childId}/invite-guardian`,

@@ -12,7 +12,7 @@ import {
   clearChildAbsence,
   getAttendanceHistory,
   getMyChildQrToken,
-  inviteSecondGuardian,
+  inviteGuardian,
   type UpdateChildRequest,
 } from '@/lib/api/children';
 import { toast } from '@/lib/toastStore';
@@ -249,7 +249,7 @@ function ChildGuardianInvitePanel({ childId }: { childId: number }) {
   const [email, setEmail] = useState('');
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const inviteMutation = useMutation({
-    mutationFn: () => inviteSecondGuardian(childId, email),
+    mutationFn: () => inviteGuardian(childId, email),
     onSuccess: (response) => {
       setInviteLink(`${window.location.origin}/accept-invite/${response.inviteToken}`);
       toast.success('Invite created');
@@ -259,7 +259,7 @@ function ChildGuardianInvitePanel({ childId }: { childId: number }) {
 
   return (
     <div className="flex flex-col gap-2 rounded-md border border-slate-200 p-3">
-      <p className="text-sm text-slate-600">Invite a second parent or guardian for this child.</p>
+      <p className="text-sm text-slate-600">Invite another parent or guardian for this child - there's no limit on how many.</p>
       <div className="flex gap-2">
         <input
           type="email"
@@ -296,11 +296,9 @@ function ChildExtras({ child }: { child: Child }) {
         <Button variant="ghost" className="text-xs" onClick={() => setPanel(panel === 'attendance' ? null : 'attendance')}>
           Attendance history
         </Button>
-        {!child.secondaryParentId && (
-          <Button variant="ghost" className="text-xs" onClick={() => setPanel(panel === 'invite' ? null : 'invite')}>
-            Invite second guardian
-          </Button>
-        )}
+        <Button variant="ghost" className="text-xs" onClick={() => setPanel(panel === 'invite' ? null : 'invite')}>
+          Invite a guardian
+        </Button>
       </div>
       {panel === 'qr' && <ChildQrPanel childId={child.id} />}
       {panel === 'absence' && <ChildAbsencePanel childId={child.id} />}

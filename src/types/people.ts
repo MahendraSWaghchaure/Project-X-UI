@@ -46,8 +46,8 @@ export type ChildStatus = 'ACTIVE' | 'INACTIVE';
 export interface Child {
   id: number;
   schoolId: number;
+  /** The one guardian route auto-allocation and fee-invoice billing key off - a child can have any number of additional guardians beyond this one (see inviteGuardian), which this response doesn't enumerate. */
   primaryParentId: number;
-  secondaryParentId: number | null;
   firstName: string;
   lastName: string;
   dateOfBirth: string | null;
