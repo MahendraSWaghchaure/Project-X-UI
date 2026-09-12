@@ -26,8 +26,10 @@ export function listMyFeeInvoices(): Promise<FeeInvoice[]> {
   return apiClient.get<ApiResponse<FeeInvoice[]>>('/parents/me/fee-invoices').then(unwrap);
 }
 
-export function listFeeInvoicesForSchool(schoolId: number): Promise<FeeInvoice[]> {
-  return apiClient.get<ApiResponse<FeeInvoice[]>>(`/schools/${schoolId}/fee-invoices`).then(unwrap);
+export function listFeeInvoicesForSchool(schoolId: number, page = 0, size?: number): Promise<PageResponse<FeeInvoice>> {
+  return apiClient
+    .get<ApiResponse<PageResponse<FeeInvoice>>>(`/schools/${schoolId}/fee-invoices`, { params: { page, size } })
+    .then(unwrap);
 }
 
 // --- Payments / checkout ---
@@ -58,8 +60,10 @@ export function getMyReceipt(paymentId: number): Promise<Payment> {
   return apiClient.get<ApiResponse<Payment>>(`/parents/me/payments/${paymentId}`).then(unwrap);
 }
 
-export function listPaymentsForSchool(schoolId: number): Promise<Payment[]> {
-  return apiClient.get<ApiResponse<Payment[]>>(`/schools/${schoolId}/payments`).then(unwrap);
+export function listPaymentsForSchool(schoolId: number, page = 0, size?: number): Promise<PageResponse<Payment>> {
+  return apiClient
+    .get<ApiResponse<PageResponse<Payment>>>(`/schools/${schoolId}/payments`, { params: { page, size } })
+    .then(unwrap);
 }
 
 // --- Late fee waivers ---

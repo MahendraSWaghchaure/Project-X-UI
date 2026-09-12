@@ -16,8 +16,11 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { Pagination } from '@/components/ui/Pagination';
 import type { PayrollRecord } from '@/types/payment';
 import { SkeletonTable } from '@/components/ui/Skeleton';
+
+const PAGE_SIZE = 20;
 
 function IncentiveEditor({ schoolId, driverId, record }: { schoolId: number; driverId: number; record?: PayrollRecord }) {
   const queryClient = useQueryClient();
@@ -53,6 +56,8 @@ export function PaymentsPage() {
   const schoolId = useAuthStore((state) => state.schoolId);
   const queryClient = useQueryClient();
   const [monthlyAmount, setMonthlyAmount] = useState('');
+  const [invoicesPage, setInvoicesPage] = useState(0);
+  const [paymentsPage, setPaymentsPage] = useState(0);
 
   const { data: schedule } = useQuery({
     queryKey: ['fee-schedule', schoolId],
@@ -60,16 +65,18 @@ export function PaymentsPage() {
     enabled: schoolId != null,
     retry: false,
   });
-  const { data: invoices, isLoading: invoicesLoading } = useQuery({
-    queryKey: ['school-fee-invoices', schoolId],
-    queryFn: () => listFeeInvoicesForSchool(schoolId!),
+  const { data: invoicesPageData, isLoading: invoicesLoading } = useQuery({
+    queryKey: ['school-fee-invoices', schoolId, invoicesPage],
+    queryFn: () => listFeeInvoicesForSchool(schoolId!, invoicesPage, PAGE_SIZE),
     enabled: schoolId != null,
   });
-  const { data: payments, isLoading: paymentsLoading } = useQuery({
-    queryKey: ['school-payments', schoolId],
-    queryFn: () => listPaymentsForSchool(schoolId!),
+  const invoices = invoicesPageData?.content;
+  const { data: paymentsPageData, isLoading: paymentsLoading } = useQuery({
+    queryKey: ['school-payments', schoolId, paymentsPage],
+    queryFn: () => listPaymentsForSchool(schoolId!, paymentsPage, PAGE_SIZE),
     enabled: schoolId != null,
   });
+  const payments = paymentsPageData?.content;
   const { data: payroll, isLoading: payrollLoading } = useQuery({
     queryKey: ['school-payroll', schoolId],
     queryFn: () => listPayrollForSchool(schoolId!),
@@ -165,6 +172,16 @@ export function PaymentsPage() {
             ))}
             {invoices?.length === 0 && <p className="py-3 text-sm text-slate-500">No invoices generated yet.</p>}
           </ul>
+          {invoicesPageData && (
+            <Pagination
+              className="mt-4"
+              page={invoicesPage}
+              totalPages={invoicesPageData.totalPages}
+              totalElements={invoicesPageData.totalElements}
+              pageSize={PAGE_SIZE}
+              onPageChange={setInvoicesPage}
+            />
+          )}
         </CardBody>
       </Card>
 
@@ -191,6 +208,16 @@ export function PaymentsPage() {
             ))}
             {payments?.length === 0 && <p className="py-3 text-sm text-slate-500">No payments received yet.</p>}
           </ul>
+          {paymentsPageData && (
+            <Pagination
+              className="mt-4"
+              page={paymentsPage}
+              totalPages={paymentsPageData.totalPages}
+              totalElements={paymentsPageData.totalElements}
+              pageSize={PAGE_SIZE}
+              onPageChange={setPaymentsPage}
+            />
+          )}
         </CardBody>
       </Card>
 
