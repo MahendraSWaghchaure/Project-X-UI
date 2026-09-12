@@ -91,7 +91,8 @@ const resources = {
   },
 };
 
-i18n
+/** Exported so tests can await readiness before rendering - see src/test/setup.ts. init() resolves asynchronously even with inline resources (no HTTP backend), so a component under test can otherwise render before translations are loaded and see raw keys instead of resolved strings. */
+export const i18nReady = i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
