@@ -45,6 +45,15 @@ apiClient.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as (InternalAxiosRequestConfig & { _retried?: boolean }) | undefined;
 
+    // The backend stamps every response with an X-Request-Id (see common.trace.TraceIdFilter) and
+    // echoes the same id into the JSON error body - logging it here means a bug report can quote
+    // one id that's simultaneously in the browser console, the network tab, and grep-able across
+    // every backend log line for that request, instead of trying to correlate a timestamp by hand.
+    const traceId = error.response?.headers?.['x-request-id'];
+    if (traceId) {
+      console.error(`[API ${error.response?.status ?? '?'}] ${originalRequest?.url ?? ''} - trace ${traceId}`);
+    }
+
     if (error.response?.status === 401 && originalRequest && !originalRequest._retried) {
       originalRequest._retried = true;
       try {
