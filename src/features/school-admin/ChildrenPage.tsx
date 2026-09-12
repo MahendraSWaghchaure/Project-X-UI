@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { Modal } from '@/components/ui/Modal';
 import { Pagination } from '@/components/ui/Pagination';
 import { SkeletonTable } from '@/components/ui/Skeleton';
 import { optionalPhoneSchema } from '@/lib/validation';
@@ -160,6 +161,7 @@ export function ChildrenPage() {
   const schoolId = useAuthStore((state) => state.schoolId);
   const queryClient = useQueryClient();
   const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [showInviteModal, setShowInviteModal] = useState(false);
   const [editingChildId, setEditingChildId] = useState<number | null>(null);
   const [childrenPage, setChildrenPage] = useState(0);
 
@@ -226,34 +228,39 @@ export function ChildrenPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold text-slate-900">Students &amp; Parents</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-slate-900">Students &amp; Parents</h1>
+        <Button onClick={() => setShowInviteModal(true)}>+ Invite a parent</Button>
+      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Invite a parent</CardTitle>
-          <p className="mt-1 text-sm text-slate-500">
-            Parents register their own children once they accept their invite. SMS/email delivery isn't wired up with
-            real credentials yet, so share the generated link with them directly for now.
+      <Modal
+        open={showInviteModal}
+        onClose={() => {
+          setShowInviteModal(false);
+          setInviteLink(null);
+        }}
+        title="Invite a parent"
+      >
+        <p className="-mt-1 mb-4 text-sm text-slate-500">
+          Parents register their own children once they accept their invite. SMS/email delivery isn't wired up with
+          real credentials yet, so share the generated link with them directly for now.
+        </p>
+        <form onSubmit={handleSubmit((values) => inviteMutation.mutate(values))} className="flex flex-wrap items-end gap-3">
+          <Input label="Parent email" type="email" error={errors.email?.message} {...register('email')} />
+          <Input label="Parent phone (optional)" {...register('phone')} />
+          <Button type="submit" isLoading={isSubmitting}>
+            Send invite
+          </Button>
+        </form>
+        {inviteLink && (
+          <p className="mt-3 break-all rounded-md bg-slate-50 p-3 text-sm text-slate-700">
+            Invite link: <span className="font-mono">{inviteLink}</span>
           </p>
-        </CardHeader>
-        <CardBody>
-          <form onSubmit={handleSubmit((values) => inviteMutation.mutate(values))} className="flex flex-wrap items-end gap-3">
-            <Input label="Parent email" type="email" error={errors.email?.message} {...register('email')} />
-            <Input label="Parent phone (optional)" {...register('phone')} />
-            <Button type="submit" isLoading={isSubmitting}>
-              Send invite
-            </Button>
-          </form>
-          {inviteLink && (
-            <p className="mt-3 break-all rounded-md bg-slate-50 p-3 text-sm text-slate-700">
-              Invite link: <span className="font-mono">{inviteLink}</span>
-            </p>
-          )}
-          {inviteMutation.isError && (
-            <p className="mt-2 text-sm text-red-600">{backendErrorMessage(inviteMutation.error, 'Could not send invite.')}</p>
-          )}
-        </CardBody>
-      </Card>
+        )}
+        {inviteMutation.isError && (
+          <p className="mt-2 text-sm text-red-600">{backendErrorMessage(inviteMutation.error, 'Could not send invite.')}</p>
+        )}
+      </Modal>
 
       <Card>
         <CardHeader>

@@ -22,6 +22,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { Modal } from '@/components/ui/Modal';
 import type { Child } from '@/types/people';
 import { SkeletonTable } from '@/components/ui/Skeleton';
 import { optionalPhoneSchema } from '@/lib/validation';
@@ -311,6 +312,7 @@ function ChildExtras({ child }: { child: Child }) {
 export function ParentChildrenPage() {
   const queryClient = useQueryClient();
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
   const { data: children, isLoading } = useQuery({ queryKey: ['my-children'], queryFn: listMyChildren });
   const {
     register,
@@ -324,6 +326,7 @@ export function ParentChildrenPage() {
     onSuccess: (child) => {
       queryClient.invalidateQueries({ queryKey: ['my-children'] });
       reset();
+      setShowRegisterModal(false);
       toast.success(`${child.firstName} added`);
     },
     onError: (error) => toast.error(backendErrorMessage(error, 'Could not add child')),
@@ -331,65 +334,63 @@ export function ParentChildrenPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold text-slate-900">My Children</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-slate-900">My Children</h1>
+        <Button onClick={() => setShowRegisterModal(true)}>+ Register a child</Button>
+      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Register a child</CardTitle>
-        </CardHeader>
-        <CardBody>
-          <form
-            onSubmit={handleSubmit((values) => createMutation.mutate(values))}
-            className="grid grid-cols-1 gap-4 sm:grid-cols-2"
-          >
-            <Input label="First name" error={errors.firstName?.message} {...register('firstName')} />
-            <Input label="Last name" error={errors.lastName?.message} {...register('lastName')} />
-            <Input label="Date of birth" type="date" {...register('dateOfBirth')} />
-            <div className="grid grid-cols-2 gap-4">
-              <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
-                Class
-                <select className="rounded-md border border-slate-300 px-3 py-2 text-sm" {...register('classLevel')}>
-                  <option value="">Select&hellip;</option>
-                  {CLASS_LEVELS.map((level) => (
-                    <option key={level} value={level}>
-                      {level}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <Input label="Section" placeholder="A, B, C…" {...register('section')} />
-            </div>
+      <Modal open={showRegisterModal} onClose={() => setShowRegisterModal(false)} title="Register a child">
+        <form
+          onSubmit={handleSubmit((values) => createMutation.mutate(values))}
+          className="grid grid-cols-1 gap-4 sm:grid-cols-2"
+        >
+          <Input label="First name" error={errors.firstName?.message} {...register('firstName')} />
+          <Input label="Last name" error={errors.lastName?.message} {...register('lastName')} />
+          <Input label="Date of birth" type="date" {...register('dateOfBirth')} />
+          <div className="grid grid-cols-2 gap-4">
             <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
-              Blood type
-              <select className="rounded-md border border-slate-300 px-3 py-2 text-sm" {...register('bloodType')}>
-                <option value="">Unknown</option>
-                {BLOOD_TYPES.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
+              Class
+              <select className="rounded-md border border-slate-300 px-3 py-2 text-sm" {...register('classLevel')}>
+                <option value="">Select&hellip;</option>
+                {CLASS_LEVELS.map((level) => (
+                  <option key={level} value={level}>
+                    {level}
                   </option>
                 ))}
               </select>
             </label>
-            <Input label="Emergency contact name" {...register('emergencyContactName')} />
-            <Input label="Emergency contact phone" {...register('emergencyContactPhone')} />
-            <label className="flex flex-col gap-1 text-sm font-medium text-slate-700 sm:col-span-2">
-              Allergies / medical notes
-              <textarea
-                className="rounded-md border border-slate-300 px-3 py-2 text-sm"
-                rows={2}
-                placeholder="e.g. peanut allergy, asthma inhaler in bag"
-                {...register('allergies')}
-              />
-            </label>
-            {createMutation.isError && (
-              <p className="sm:col-span-2 text-sm text-red-600">{backendErrorMessage(createMutation.error, 'Could not add child.')}</p>
-            )}
-            <Button type="submit" isLoading={isSubmitting} className="sm:col-span-2 sm:w-fit">
-              Add child
-            </Button>
-          </form>
-        </CardBody>
-      </Card>
+            <Input label="Section" placeholder="A, B, C…" {...register('section')} />
+          </div>
+          <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
+            Blood type
+            <select className="rounded-md border border-slate-300 px-3 py-2 text-sm" {...register('bloodType')}>
+              <option value="">Unknown</option>
+              {BLOOD_TYPES.map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
+          </label>
+          <Input label="Emergency contact name" {...register('emergencyContactName')} />
+          <Input label="Emergency contact phone" {...register('emergencyContactPhone')} />
+          <label className="flex flex-col gap-1 text-sm font-medium text-slate-700 sm:col-span-2">
+            Allergies / medical notes
+            <textarea
+              className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+              rows={2}
+              placeholder="e.g. peanut allergy, asthma inhaler in bag"
+              {...register('allergies')}
+            />
+          </label>
+          {createMutation.isError && (
+            <p className="sm:col-span-2 text-sm text-red-600">{backendErrorMessage(createMutation.error, 'Could not add child.')}</p>
+          )}
+          <Button type="submit" isLoading={isSubmitting} className="sm:col-span-2 sm:w-fit">
+            Add child
+          </Button>
+        </form>
+      </Modal>
 
       <Card>
         <CardHeader>

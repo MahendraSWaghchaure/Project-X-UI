@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card';
 import { LocationPicker } from '@/components/ui/LocationPicker';
+import { Modal } from '@/components/ui/Modal';
 import type { Route } from '@/types/school';
 import { SkeletonTable } from '@/components/ui/Skeleton';
 
@@ -71,6 +72,7 @@ function ZoneEditor({ schoolId, route }: { schoolId: number; route: Route }) {
 export function RoutesPage() {
   const schoolId = useAuthStore((state) => state.schoolId);
   const queryClient = useQueryClient();
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   const { data: routes, isLoading } = useQuery({
     queryKey: ['routes', schoolId],
@@ -114,6 +116,7 @@ export function RoutesPage() {
     onSuccess: (route) => {
       queryClient.invalidateQueries({ queryKey: ['routes', schoolId] });
       reset();
+      setShowCreateModal(false);
       toast.success(`${route.name} created`);
     },
     onError: () => toast.error('Could not create route'),
@@ -131,69 +134,67 @@ export function RoutesPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold text-slate-900">Routes</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-slate-900">Routes</h1>
+        <Button onClick={() => setShowCreateModal(true)}>+ Create route</Button>
+      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Create a route</CardTitle>
-          <p className="mt-1 text-sm text-slate-500">
-            Set a pickup-radius zone (distance from the school) so children can be auto-assigned to the nearest
-            covering route — e.g. Route A covers 0–5km, Route B covers 5–10km.
-          </p>
-        </CardHeader>
-        <CardBody>
-          <form onSubmit={handleSubmit((values) => createMutation.mutate(values))} className="flex flex-col gap-4">
-            <Input label="Route name" error={errors.name?.message} {...register('name')} />
-            <div className="grid grid-cols-2 gap-4 sm:w-1/2">
-              <Input label="Zone min (m)" type="number" {...register('zoneMinRadiusMeters')} />
-              <Input label="Zone max (m)" type="number" {...register('zoneMaxRadiusMeters')} />
+      <Modal open={showCreateModal} onClose={() => setShowCreateModal(false)} title="Create a route" size="lg">
+        <p className="-mt-1 mb-4 text-sm text-slate-500">
+          Set a pickup-radius zone (distance from the school) so children can be auto-assigned to the nearest
+          covering route — e.g. Route A covers 0–5km, Route B covers 5–10km.
+        </p>
+        <form onSubmit={handleSubmit((values) => createMutation.mutate(values))} className="flex flex-col gap-4">
+          <Input label="Route name" error={errors.name?.message} {...register('name')} />
+          <div className="grid grid-cols-2 gap-4 sm:w-1/2">
+            <Input label="Zone min (m)" type="number" {...register('zoneMinRadiusMeters')} />
+            <Input label="Zone max (m)" type="number" {...register('zoneMaxRadiusMeters')} />
+          </div>
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-slate-700">Stops (in order)</span>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => append({ label: '', latitude: 0, longitude: 0, radiusMeters: 150 })}
+              >
+                Add stop
+              </Button>
             </div>
-            <div className="flex flex-col gap-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-slate-700">Stops (in order)</span>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => append({ label: '', latitude: 0, longitude: 0, radiusMeters: 150 })}
-                >
-                  Add stop
-                </Button>
-              </div>
-              {fields.map((field, index) => (
-                <div key={field.id} className="grid grid-cols-1 gap-3 rounded-md border border-slate-200 p-3 sm:grid-cols-2">
-                  <Input id={`stop-label-${field.id}`} label="Label" {...register(`stops.${index}.label` as const)} />
-                  <Input
-                    id={`stop-radius-${field.id}`}
-                    label="Radius (m)"
-                    type="number"
-                    {...register(`stops.${index}.radiusMeters` as const)}
-                  />
-                  <LocationPicker
-                    label={`Stop location`}
-                    latitude={watchedStops?.[index]?.latitude}
-                    longitude={watchedStops?.[index]?.longitude}
-                    onChange={(point) => {
-                      setValue(`stops.${index}.latitude` as const, point.latitude);
-                      setValue(`stops.${index}.longitude` as const, point.longitude);
-                    }}
-                    height={220}
-                  />
-                  <div className="sm:col-span-2">
-                    <Button type="button" variant="danger" onClick={() => remove(index)}>
-                      Remove stop
-                    </Button>
-                  </div>
+            {fields.map((field, index) => (
+              <div key={field.id} className="grid grid-cols-1 gap-3 rounded-md border border-slate-200 p-3 sm:grid-cols-2">
+                <Input id={`stop-label-${field.id}`} label="Label" {...register(`stops.${index}.label` as const)} />
+                <Input
+                  id={`stop-radius-${field.id}`}
+                  label="Radius (m)"
+                  type="number"
+                  {...register(`stops.${index}.radiusMeters` as const)}
+                />
+                <LocationPicker
+                  label={`Stop location`}
+                  latitude={watchedStops?.[index]?.latitude}
+                  longitude={watchedStops?.[index]?.longitude}
+                  onChange={(point) => {
+                    setValue(`stops.${index}.latitude` as const, point.latitude);
+                    setValue(`stops.${index}.longitude` as const, point.longitude);
+                  }}
+                  height={220}
+                />
+                <div className="sm:col-span-2">
+                  <Button type="button" variant="danger" onClick={() => remove(index)}>
+                    Remove stop
+                  </Button>
                 </div>
-              ))}
-              {errors.stops?.message && <p className="text-sm text-red-600">{errors.stops.message}</p>}
-            </div>
-            {createMutation.isError && <p className="text-sm text-red-600">Could not create route.</p>}
-            <Button type="submit" isLoading={isSubmitting} className="w-fit">
-              Create route
-            </Button>
-          </form>
-        </CardBody>
-      </Card>
+              </div>
+            ))}
+            {errors.stops?.message && <p className="text-sm text-red-600">{errors.stops.message}</p>}
+          </div>
+          {createMutation.isError && <p className="text-sm text-red-600">Could not create route.</p>}
+          <Button type="submit" isLoading={isSubmitting} className="w-fit">
+            Create route
+          </Button>
+        </form>
+      </Modal>
 
       <Card>
         <CardHeader>

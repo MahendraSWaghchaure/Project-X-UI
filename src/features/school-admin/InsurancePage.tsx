@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { Modal } from '@/components/ui/Modal';
 import type { InsuredSubjectType } from '@/types/insurance';
 import { SkeletonTable } from '@/components/ui/Skeleton';
 
@@ -43,6 +44,7 @@ export function InsurancePage() {
   const schoolId = useAuthStore((state) => state.schoolId);
   const enabled = schoolId != null;
   const queryClient = useQueryClient();
+  const [showAddModal, setShowAddModal] = useState(false);
 
   const { data: policies, isLoading } = useQuery({
     queryKey: ['insurance-policies', schoolId],
@@ -113,6 +115,7 @@ export function InsurancePage() {
       queryClient.invalidateQueries({ queryKey: ['vehicles', schoolId] });
       toast.success('Insurance policy added and linked');
       reset();
+      setShowAddModal(false);
     },
     onError: (error) => toast.error(backendErrorMessage(error, 'Could not save the insurance policy')),
   });
@@ -122,7 +125,10 @@ export function InsurancePage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold text-slate-900">Insurance</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-slate-900">Insurance</h1>
+        <Button onClick={() => setShowAddModal(true)}>+ Add policy</Button>
+      </div>
 
       {expiringSoon.length > 0 && (
         <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
@@ -131,62 +137,57 @@ export function InsurancePage() {
         </div>
       )}
 
-      <Card className="max-w-2xl">
-        <CardHeader>
-          <CardTitle>Add a policy</CardTitle>
-          <p className="mt-1 text-sm text-slate-500">
-            Covers a child, driver, or vehicle. Saving both creates the policy record and links it in one step.
-          </p>
-        </CardHeader>
-        <CardBody>
-          <form onSubmit={handleSubmit((values) => mutation.mutate(values))} className="flex flex-col gap-4">
-            <div className="grid grid-cols-2 gap-4">
-              <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
-                Covers
-                <select
-                  className="rounded-md border border-slate-300 px-3 py-2 text-sm"
-                  {...register('subjectType')}
-                >
-                  <option value="CHILD">Child</option>
-                  <option value="DRIVER">Driver</option>
-                  <option value="VEHICLE">Vehicle</option>
-                </select>
-              </label>
-              <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
-                Who
-                <select className="rounded-md border border-slate-300 px-3 py-2 text-sm" {...register('subjectId')}>
-                  <option value="">Select&hellip;</option>
-                  {subjectOptions.map((opt) => (
-                    <option key={opt.id} value={opt.id}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-                {errors.subjectId && <span className="text-xs text-red-600">{errors.subjectId.message}</span>}
-              </label>
-            </div>
-            <Input label="Insurance provider" error={errors.provider?.message} {...register('provider')} />
-            <Input label="Policy number" error={errors.policyNumber?.message} {...register('policyNumber')} />
-            <Input
-              label="Coverage amount (₹)"
-              type="number"
-              step="0.01"
-              error={errors.coverageAmount?.message}
-              {...register('coverageAmount')}
-            />
-            <div className="grid grid-cols-2 gap-4">
-              <Input label="Start date" type="date" error={errors.startDate?.message} {...register('startDate')} />
-              <Input label="End date" type="date" error={errors.endDate?.message} {...register('endDate')} />
-            </div>
-            {mutation.isError && (
-              <p className="text-sm text-red-600">{backendErrorMessage(mutation.error, 'Could not save the insurance policy')}</p>
-            )}
-            <Button type="submit" isLoading={isSubmitting} className="w-fit">
-              Add policy
-            </Button>
-          </form>
-        </CardBody>
-      </Card>
+      <Modal open={showAddModal} onClose={() => setShowAddModal(false)} title="Add a policy">
+        <p className="-mt-1 mb-4 text-sm text-slate-500">
+          Covers a child, driver, or vehicle. Saving both creates the policy record and links it in one step.
+        </p>
+        <form onSubmit={handleSubmit((values) => mutation.mutate(values))} className="flex flex-col gap-4">
+          <div className="grid grid-cols-2 gap-4">
+            <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
+              Covers
+              <select
+                className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+                {...register('subjectType')}
+              >
+                <option value="CHILD">Child</option>
+                <option value="DRIVER">Driver</option>
+                <option value="VEHICLE">Vehicle</option>
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
+              Who
+              <select className="rounded-md border border-slate-300 px-3 py-2 text-sm" {...register('subjectId')}>
+                <option value="">Select&hellip;</option>
+                {subjectOptions.map((opt) => (
+                  <option key={opt.id} value={opt.id}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+              {errors.subjectId && <span className="text-xs text-red-600">{errors.subjectId.message}</span>}
+            </label>
+          </div>
+          <Input label="Insurance provider" error={errors.provider?.message} {...register('provider')} />
+          <Input label="Policy number" error={errors.policyNumber?.message} {...register('policyNumber')} />
+          <Input
+            label="Coverage amount (₹)"
+            type="number"
+            step="0.01"
+            error={errors.coverageAmount?.message}
+            {...register('coverageAmount')}
+          />
+          <div className="grid grid-cols-2 gap-4">
+            <Input label="Start date" type="date" error={errors.startDate?.message} {...register('startDate')} />
+            <Input label="End date" type="date" error={errors.endDate?.message} {...register('endDate')} />
+          </div>
+          {mutation.isError && (
+            <p className="text-sm text-red-600">{backendErrorMessage(mutation.error, 'Could not save the insurance policy')}</p>
+          )}
+          <Button type="submit" isLoading={isSubmitting} className="w-fit">
+            Add policy
+          </Button>
+        </form>
+      </Modal>
 
       <Card>
         <CardHeader>

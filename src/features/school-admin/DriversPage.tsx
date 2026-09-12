@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { Modal } from '@/components/ui/Modal';
 import type { Driver } from '@/types/people';
 import { SkeletonTable } from '@/components/ui/Skeleton';
 import { phoneSchema } from '@/lib/validation';
@@ -169,6 +170,7 @@ export function DriversPage() {
   const schoolId = useAuthStore((state) => state.schoolId);
   const queryClient = useQueryClient();
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
   const { data: drivers, isLoading } = useQuery({
     queryKey: ['drivers', schoolId],
     queryFn: () => listDrivers(schoolId!),
@@ -186,6 +188,7 @@ export function DriversPage() {
     onSuccess: (driver) => {
       queryClient.invalidateQueries({ queryKey: ['drivers', schoolId] });
       reset();
+      setShowAddModal(false);
       toast.success(`${driver.firstName} ${driver.lastName} added`);
     },
     onError: () => toast.error('Could not add driver'),
@@ -212,32 +215,30 @@ export function DriversPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold text-slate-900">Drivers</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-slate-900">Drivers</h1>
+        <Button onClick={() => setShowAddModal(true)}>+ Add driver</Button>
+      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Add a driver</CardTitle>
-        </CardHeader>
-        <CardBody>
-          <form
-            onSubmit={handleSubmit((values) => createMutation.mutate(values))}
-            className="grid grid-cols-1 gap-4 sm:grid-cols-2"
-          >
-            <Input label="First name" error={errors.firstName?.message} {...register('firstName')} />
-            <Input label="Last name" error={errors.lastName?.message} {...register('lastName')} />
-            <Input label="Email" type="email" error={errors.email?.message} {...register('email')} />
-            <Input label="Temporary password" type="password" error={errors.password?.message} {...register('password')} />
-            <Input label="Phone" error={errors.phone?.message} {...register('phone')} />
-            <Input label="License number" error={errors.licenseNumber?.message} {...register('licenseNumber')} />
-            <Input label="License expiry" type="date" {...register('licenseExpiry')} />
-            <Input label="Base monthly salary" type="number" {...register('baseSalaryMonthly')} />
-            {createMutation.isError && <p className="sm:col-span-2 text-sm text-red-600">Could not add driver.</p>}
-            <Button type="submit" isLoading={isSubmitting} className="sm:col-span-2 sm:w-fit">
-              Add driver
-            </Button>
-          </form>
-        </CardBody>
-      </Card>
+      <Modal open={showAddModal} onClose={() => setShowAddModal(false)} title="Add a driver">
+        <form
+          onSubmit={handleSubmit((values) => createMutation.mutate(values))}
+          className="grid grid-cols-1 gap-4 sm:grid-cols-2"
+        >
+          <Input label="First name" error={errors.firstName?.message} {...register('firstName')} />
+          <Input label="Last name" error={errors.lastName?.message} {...register('lastName')} />
+          <Input label="Email" type="email" error={errors.email?.message} {...register('email')} />
+          <Input label="Temporary password" type="password" error={errors.password?.message} {...register('password')} />
+          <Input label="Phone" error={errors.phone?.message} {...register('phone')} />
+          <Input label="License number" error={errors.licenseNumber?.message} {...register('licenseNumber')} />
+          <Input label="License expiry" type="date" {...register('licenseExpiry')} />
+          <Input label="Base monthly salary" type="number" {...register('baseSalaryMonthly')} />
+          {createMutation.isError && <p className="sm:col-span-2 text-sm text-red-600">Could not add driver.</p>}
+          <Button type="submit" isLoading={isSubmitting} className="sm:col-span-2 sm:w-fit">
+            Add driver
+          </Button>
+        </form>
+      </Modal>
 
       <Card>
         <CardHeader>

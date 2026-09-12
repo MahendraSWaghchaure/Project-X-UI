@@ -18,6 +18,7 @@ import { Input } from '@/components/ui/Input';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { LocationPicker } from '@/components/ui/LocationPicker';
+import { Modal } from '@/components/ui/Modal';
 import type { School } from '@/types/school';
 import { SkeletonTable } from '@/components/ui/Skeleton';
 import { optionalPhoneSchema } from '@/lib/validation';
@@ -128,6 +129,7 @@ function EditSchoolRow({ school, onDone }: { school: School; onDone: () => void 
 export function SchoolsPage() {
   const queryClient = useQueryClient();
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [showOnboardModal, setShowOnboardModal] = useState(false);
   const { data: schools, isLoading } = useQuery({ queryKey: ['schools'], queryFn: listSchools });
   const {
     register,
@@ -145,6 +147,7 @@ export function SchoolsPage() {
     onSuccess: (school) => {
       queryClient.invalidateQueries({ queryKey: ['schools'] });
       reset();
+      setShowOnboardModal(false);
       toast.success(`${school.name} created`);
     },
     onError: (error) => toast.error(backendErrorMessage(error, 'Could not create school')),
@@ -162,55 +165,53 @@ export function SchoolsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold text-slate-900">Schools</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-slate-900">Schools</h1>
+        <Button onClick={() => setShowOnboardModal(true)}>+ Onboard a school</Button>
+      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Onboard a new school</CardTitle>
-        </CardHeader>
-        <CardBody>
-          <form
-            onSubmit={handleSubmit((values) => createMutation.mutate(values))}
-            className="grid grid-cols-1 gap-4 sm:grid-cols-2"
-          >
-            <Input label="School name" error={errors.name?.message} {...register('name')} />
-            <Input label="City" error={errors.city?.message} {...register('city')} />
-            <Input label="Address" className="sm:col-span-2" error={errors.address?.message} {...register('address')} />
-            <Input label="Contact phone" {...register('contactPhone')} />
-            <Input label="Contact email" type="email" {...register('contactEmail')} />
-            <LocationPicker
-              label="School location"
-              latitude={newSchoolLatitude}
-              longitude={newSchoolLongitude}
-              onChange={(point) => {
-                setValue('latitude', point.latitude);
-                setValue('longitude', point.longitude);
-              }}
-              height={220}
-            />
-            <div className="sm:col-span-2 border-t border-slate-100 pt-4 text-sm font-medium text-slate-500">
-              First school admin login
-            </div>
-            <Input label="Admin first name" error={errors.adminFirstName?.message} {...register('adminFirstName')} />
-            <Input label="Admin last name" error={errors.adminLastName?.message} {...register('adminLastName')} />
-            <Input label="Admin email" type="email" error={errors.adminEmail?.message} {...register('adminEmail')} />
-            <Input
-              label="Admin temporary password"
-              type="password"
-              error={errors.adminPassword?.message}
-              {...register('adminPassword')}
-            />
-            {createMutation.isError && (
-              <p className="sm:col-span-2 text-sm text-red-600">
-                {backendErrorMessage(createMutation.error, 'Could not create school. Check the fields and try again.')}
-              </p>
-            )}
-            <Button type="submit" isLoading={isSubmitting} className="sm:col-span-2 sm:w-fit">
-              Create school
-            </Button>
-          </form>
-        </CardBody>
-      </Card>
+      <Modal open={showOnboardModal} onClose={() => setShowOnboardModal(false)} title="Onboard a new school" size="lg">
+        <form
+          onSubmit={handleSubmit((values) => createMutation.mutate(values))}
+          className="grid grid-cols-1 gap-4 sm:grid-cols-2"
+        >
+          <Input label="School name" error={errors.name?.message} {...register('name')} />
+          <Input label="City" error={errors.city?.message} {...register('city')} />
+          <Input label="Address" className="sm:col-span-2" error={errors.address?.message} {...register('address')} />
+          <Input label="Contact phone" {...register('contactPhone')} />
+          <Input label="Contact email" type="email" {...register('contactEmail')} />
+          <LocationPicker
+            label="School location"
+            latitude={newSchoolLatitude}
+            longitude={newSchoolLongitude}
+            onChange={(point) => {
+              setValue('latitude', point.latitude);
+              setValue('longitude', point.longitude);
+            }}
+            height={220}
+          />
+          <div className="sm:col-span-2 border-t border-slate-100 pt-4 text-sm font-medium text-slate-500">
+            First school admin login
+          </div>
+          <Input label="Admin first name" error={errors.adminFirstName?.message} {...register('adminFirstName')} />
+          <Input label="Admin last name" error={errors.adminLastName?.message} {...register('adminLastName')} />
+          <Input label="Admin email" type="email" error={errors.adminEmail?.message} {...register('adminEmail')} />
+          <Input
+            label="Admin temporary password"
+            type="password"
+            error={errors.adminPassword?.message}
+            {...register('adminPassword')}
+          />
+          {createMutation.isError && (
+            <p className="sm:col-span-2 text-sm text-red-600">
+              {backendErrorMessage(createMutation.error, 'Could not create school. Check the fields and try again.')}
+            </p>
+          )}
+          <Button type="submit" isLoading={isSubmitting} className="sm:col-span-2 sm:w-fit">
+            Create school
+          </Button>
+        </form>
+      </Modal>
 
       <Card>
         <CardHeader>
