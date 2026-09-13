@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -11,22 +11,116 @@ import {
   type CreateSchoolRequest,
   type UpdateSchoolRequest,
 } from '@/lib/api/schools';
+import { getDistrict, listCountries, listDistricts, listStates } from '@/lib/api/geo';
 import { toast } from '@/lib/toastStore';
 import { backendErrorMessage } from '@/lib/errorMessage';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { LocationPicker } from '@/components/ui/LocationPicker';
 import { Modal } from '@/components/ui/Modal';
+import { GeoFilterBar, type GeoSelection } from '@/components/ui/GeoFilterBar';
+import { useResolvedDistrictIds } from '@/lib/hooks/useResolvedDistrictIds';
 import type { School } from '@/types/school';
 import { SkeletonTable } from '@/components/ui/Skeleton';
 import { optionalPhoneSchema } from '@/lib/validation';
+
+function DistrictAssignmentPicker({
+  districtId,
+  onChange,
+}: {
+  districtId: number | undefined;
+  onChange: (districtId: number | undefined) => void;
+}) {
+  const [countryId, setCountryId] = useState<number | undefined>();
+  const [stateId, setStateId] = useState<number | undefined>();
+  const [prefilled, setPrefilled] = useState(false);
+
+  const { data: prefillDistrict } = useQuery({
+    queryKey: ['geo', 'district-prefill', districtId],
+    queryFn: () => getDistrict(districtId!),
+    enabled: !!districtId && !prefilled,
+  });
+  useEffect(() => {
+    if (prefillDistrict && !prefilled) {
+      setCountryId(prefillDistrict.countryId);
+      setStateId(prefillDistrict.stateId);
+      setPrefilled(true);
+    }
+  }, [prefillDistrict, prefilled]);
+
+  const { data: countries } = useQuery({ queryKey: ['geo', 'countries'], queryFn: listCountries });
+  const { data: states } = useQuery({
+    queryKey: ['geo', 'states', countryId],
+    queryFn: () => listStates(countryId!),
+    enabled: !!countryId,
+  });
+  const { data: districts } = useQuery({
+    queryKey: ['geo', 'districts', stateId],
+    queryFn: () => listDistricts({ stateId }),
+    enabled: !!stateId,
+  });
+
+  return (
+    <>
+      <Select
+        label="Country"
+        value={countryId ?? ''}
+        onChange={(e) => {
+          const id = e.target.value ? Number(e.target.value) : undefined;
+          setCountryId(id);
+          setStateId(undefined);
+          onChange(undefined);
+        }}
+      >
+        <option value="">Select country</option>
+        {countries?.map((c) => (
+          <option key={c.id} value={c.id}>
+            {c.name}
+          </option>
+        ))}
+      </Select>
+      <Select
+        label="State"
+        value={stateId ?? ''}
+        disabled={!countryId}
+        onChange={(e) => {
+          const id = e.target.value ? Number(e.target.value) : undefined;
+          setStateId(id);
+          onChange(undefined);
+        }}
+      >
+        <option value="">Select state</option>
+        {states?.map((s) => (
+          <option key={s.id} value={s.id}>
+            {s.name}
+          </option>
+        ))}
+      </Select>
+      <Select
+        label="District"
+        value={districtId ?? ''}
+        disabled={!stateId}
+        onChange={(e) => onChange(e.target.value ? Number(e.target.value) : undefined)}
+      >
+        <option value="">Select district</option>
+        {districts?.map((d) => (
+          <option key={d.id} value={d.id}>
+            {d.name}
+          </option>
+        ))}
+      </Select>
+    </>
+  );
+}
 
 const schema = z.object({
   name: z.string().min(1),
   address: z.string().min(1),
   city: z.string().min(1),
+  districtId: z.number().optional(),
   contactPhone: optionalPhoneSchema,
   contactEmail: z.string().email().optional().or(z.literal('')),
   latitude: z.number().optional(),
@@ -44,6 +138,7 @@ const editSchema = z.object({
   city: z.string().min(1),
   state: z.string().optional(),
   pincode: z.string().optional(),
+  districtId: z.number().optional(),
   contactPhone: optionalPhoneSchema,
   contactEmail: z.string().email().optional().or(z.literal('')),
   latitude: z.number().optional(),
@@ -67,6 +162,7 @@ function EditSchoolRow({ school, onDone }: { school: School; onDone: () => void 
       city: school.city,
       state: school.state ?? '',
       pincode: school.pincode ?? '',
+      districtId: school.districtId ?? undefined,
       contactPhone: school.contactPhone ?? '',
       contactEmail: school.contactEmail ?? '',
       latitude: school.location?.latitude,
@@ -75,6 +171,7 @@ function EditSchoolRow({ school, onDone }: { school: School; onDone: () => void 
   });
   const latitude = watch('latitude');
   const longitude = watch('longitude');
+  const districtId = watch('districtId');
 
   const updateMutation = useMutation({
     mutationFn: (values: UpdateSchoolRequest) => updateSchool(school.id, values),
@@ -102,6 +199,7 @@ function EditSchoolRow({ school, onDone }: { school: School; onDone: () => void 
       />
       <Input id={`school-state-${school.id}`} label="State" {...register('state')} />
       <Input id={`school-pincode-${school.id}`} label="Pincode" {...register('pincode')} />
+      <DistrictAssignmentPicker districtId={districtId} onChange={(id) => setValue('districtId', id)} />
       <Input id={`school-contact-phone-${school.id}`} label="Contact phone" {...register('contactPhone')} />
       <Input id={`school-contact-email-${school.id}`} label="Contact email" type="email" {...register('contactEmail')} />
       <LocationPicker
@@ -130,7 +228,12 @@ export function SchoolsPage() {
   const queryClient = useQueryClient();
   const [editingId, setEditingId] = useState<number | null>(null);
   const [showOnboardModal, setShowOnboardModal] = useState(false);
-  const { data: schools, isLoading } = useQuery({ queryKey: ['schools'], queryFn: listSchools });
+  const [geoSelection, setGeoSelection] = useState<GeoSelection>({});
+  const { districtIds } = useResolvedDistrictIds(geoSelection);
+  const { data: schools, isLoading } = useQuery({
+    queryKey: ['schools', districtIds],
+    queryFn: () => listSchools(districtIds),
+  });
   const {
     register,
     handleSubmit,
@@ -141,6 +244,7 @@ export function SchoolsPage() {
   } = useForm<FormValues>({ resolver: zodResolver(schema) });
   const newSchoolLatitude = watch('latitude');
   const newSchoolLongitude = watch('longitude');
+  const newSchoolDistrictId = watch('districtId');
 
   const createMutation = useMutation({
     mutationFn: (values: CreateSchoolRequest) => createSchool(values),
@@ -178,6 +282,10 @@ export function SchoolsPage() {
           <Input label="School name" error={errors.name?.message} {...register('name')} />
           <Input label="City" error={errors.city?.message} {...register('city')} />
           <Input label="Address" className="sm:col-span-2" error={errors.address?.message} {...register('address')} />
+          <DistrictAssignmentPicker
+            districtId={newSchoolDistrictId}
+            onChange={(id) => setValue('districtId', id)}
+          />
           <Input label="Contact phone" {...register('contactPhone')} />
           <Input label="Contact email" type="email" {...register('contactEmail')} />
           <LocationPicker
@@ -212,6 +320,8 @@ export function SchoolsPage() {
           </Button>
         </form>
       </Modal>
+
+      <GeoFilterBar value={geoSelection} onChange={setGeoSelection} />
 
       <Card>
         <CardHeader>

@@ -8,6 +8,7 @@ export interface CreateSchoolRequest {
   city: string;
   state?: string;
   pincode?: string;
+  districtId?: number;
   contactPhone?: string;
   contactEmail?: string;
   latitude?: number;
@@ -20,8 +21,10 @@ export interface CreateSchoolRequest {
   adminPassword: string;
 }
 
-export function listSchools(): Promise<School[]> {
-  return apiClient.get<ApiResponse<School[]>>('/schools').then(unwrap);
+export function listSchools(districtIds?: number[]): Promise<School[]> {
+  return apiClient
+    .get<ApiResponse<School[]>>('/schools', { params: districtIds?.length ? { districtIds } : undefined })
+    .then(unwrap);
 }
 
 export function getSchool(schoolId: number): Promise<School> {

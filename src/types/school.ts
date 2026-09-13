@@ -10,6 +10,7 @@ export interface School {
   city: string;
   state: string | null;
   pincode: string | null;
+  districtId: number | null;
   contactPhone: string | null;
   contactEmail: string | null;
   location: GeoPoint | null;
