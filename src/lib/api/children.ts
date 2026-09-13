@@ -2,6 +2,7 @@ import { apiClient, unwrap } from '@/lib/apiClient';
 import type { ApiResponse, PageResponse } from '@/types/api';
 import type { Child, ChildDriver } from '@/types/people';
 import type { ChildTripEvent } from '@/types/tracking';
+import type { Route } from '@/types/school';
 
 export interface CreateChildRequest {
   firstName: string;
@@ -44,6 +45,10 @@ export function createChildAsParent(request: CreateChildRequest): Promise<Child>
 
 export function getMyChildDriver(childId: number): Promise<ChildDriver> {
   return apiClient.get<ApiResponse<ChildDriver>>(`/parents/me/children/${childId}/driver`).then(unwrap);
+}
+
+export function getMyChildRoute(childId: number): Promise<Route> {
+  return apiClient.get<ApiResponse<Route>>(`/parents/me/children/${childId}/route`).then(unwrap);
 }
 
 export function setChildAbsence(childId: number, date: string): Promise<void> {

@@ -1,18 +1,37 @@
-import { useMemo, useState } from 'react';
-import { MapContainer, Marker, Popup, TileLayer } from 'react-leaflet';
+import { useEffect, useMemo, useState } from 'react';
+import { MapContainer, Marker, Polyline, Popup, TileLayer, useMap } from 'react-leaflet';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { getMyChildDriver, listMyChildren } from '@/lib/api/children';
+import { getMyChildDriver, getMyChildRoute, listMyChildren } from '@/lib/api/children';
 import { getMyChildVehicleLocation } from '@/lib/api/tracking';
 import { getTodaysTripForMyChild, recordParentHomeArrival } from '@/lib/api/trips';
 import { useLiveVehicleLocation } from '@/hooks/useLiveVehicleLocation';
 import { useSosSubscription } from '@/hooks/useSosSubscription';
-import { vehicleIcon } from '@/lib/leafletIcons';
+import { stopIcon, vehicleIcon } from '@/lib/leafletIcons';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card';
 
 const DEFAULT_CENTER: [number, number] = [20.5937, 78.9629]; // India, used only before any position is known
+
+/**
+ * react-leaflet's MapContainer `center`/`zoom` props only apply on first mount - they don't
+ * recenter an already-mounted map when route/location data arrives later (which it always does
+ * here, since both load asynchronously after the map itself renders). This effect is what
+ * actually moves the view once real positions are known.
+ */
+function MapAutoFit({ positions }: { positions: [number, number][] }) {
+  const map = useMap();
+  useEffect(() => {
+    if (positions.length === 0) return;
+    if (positions.length === 1) {
+      map.setView(positions[0], 15);
+    } else {
+      map.fitBounds(positions, { padding: [40, 40] });
+    }
+  }, [map, positions]);
+  return null;
+}
 
 export function TrackBusPage() {
   const { t } = useTranslation();
@@ -38,6 +57,17 @@ export function TrackBusPage() {
     retry: false,
   });
 
+  const { data: route } = useQuery({
+    queryKey: ['child-route', childId],
+    queryFn: () => getMyChildRoute(childId!),
+    enabled: childId != null,
+    retry: false,
+  });
+  const routeStopPositions = useMemo<[number, number][]>(
+    () => route?.stops.map((stop) => [stop.location.latitude, stop.location.longitude] as [number, number]) ?? [],
+    [route],
+  );
+
   const homeArrivalMutation = useMutation({
     mutationFn: async () => {
       if (childId == null) throw new Error('No child selected');
@@ -47,8 +77,12 @@ export function TrackBusPage() {
   });
 
   const center = useMemo<[number, number]>(
-    () => (location ? [location.latitude, location.longitude] : DEFAULT_CENTER),
-    [location],
+    () => (location ? [location.latitude, location.longitude] : (routeStopPositions[0] ?? DEFAULT_CENTER)),
+    [location, routeStopPositions],
+  );
+  const fitPositions = useMemo<[number, number][]>(
+    () => (location ? [[location.latitude, location.longitude], ...routeStopPositions] : routeStopPositions),
+    [location, routeStopPositions],
   );
 
   return (
@@ -84,6 +118,15 @@ export function TrackBusPage() {
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
+            <MapAutoFit positions={fitPositions} />
+            {routeStopPositions.length > 1 && (
+              <Polyline positions={routeStopPositions} pathOptions={{ color: '#16a34a', weight: 3, dashArray: '6 6' }} />
+            )}
+            {route?.stops.map((stop) => (
+              <Marker key={stop.id} position={[stop.location.latitude, stop.location.longitude]} icon={stopIcon}>
+                <Popup>{stop.label}</Popup>
+              </Marker>
+            ))}
             {location && (
               <Marker position={[location.latitude, location.longitude]} icon={vehicleIcon}>
                 <Popup>
