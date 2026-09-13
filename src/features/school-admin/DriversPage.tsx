@@ -14,6 +14,7 @@ import {
   updateDriverVerification,
   type UpdateDriverRequest,
 } from '@/lib/api/drivers';
+import { listRoutes } from '@/lib/api/routes';
 import { useAuthStore } from '@/lib/authStore';
 import { toast } from '@/lib/toastStore';
 import { Button } from '@/components/ui/Button';
@@ -21,6 +22,7 @@ import { Input } from '@/components/ui/Input';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
+import { RouteFilterSelect } from '@/components/ui/RouteFilterSelect';
 import type { Driver } from '@/types/people';
 import { SkeletonTable } from '@/components/ui/Skeleton';
 import { phoneSchema } from '@/lib/validation';
@@ -171,11 +173,19 @@ export function DriversPage() {
   const queryClient = useQueryClient();
   const [editingId, setEditingId] = useState<number | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [routeFilter, setRouteFilter] = useState<number | undefined>(undefined);
   const { data: drivers, isLoading } = useQuery({
     queryKey: ['drivers', schoolId],
     queryFn: () => listDrivers(schoolId!),
     enabled: schoolId != null,
   });
+  const { data: routes } = useQuery({
+    queryKey: ['routes', schoolId],
+    queryFn: () => listRoutes(schoolId!),
+    enabled: schoolId != null && routeFilter != null,
+  });
+  const routeDriverId = routeFilter != null ? routes?.find((r) => r.id === routeFilter)?.driverId : undefined;
+  const visibleDrivers = routeFilter == null ? drivers : drivers?.filter((d) => d.id === routeDriverId);
   const {
     register,
     handleSubmit,
@@ -240,6 +250,8 @@ export function DriversPage() {
         </form>
       </Modal>
 
+      <RouteFilterSelect schoolId={schoolId!} value={routeFilter} onChange={setRouteFilter} />
+
       <Card>
         <CardHeader>
           <CardTitle>Roster</CardTitle>
@@ -247,7 +259,7 @@ export function DriversPage() {
         <CardBody>
           {isLoading && <SkeletonTable rows={4} columns={3} />}
           <ul className="flex flex-col divide-y divide-slate-100">
-            {drivers?.map((driver) =>
+            {visibleDrivers?.map((driver) =>
               editingId === driver.id ? (
                 <li key={driver.id} className="py-3">
                   <EditDriverRow schoolId={schoolId!} driver={driver} onDone={() => setEditingId(null)} />
@@ -303,7 +315,11 @@ export function DriversPage() {
                 </li>
               ),
             )}
-            {drivers?.length === 0 && <p className="py-3 text-sm text-slate-500">No drivers yet.</p>}
+            {visibleDrivers?.length === 0 && (
+              <p className="py-3 text-sm text-slate-500">
+                {routeFilter != null ? 'No driver assigned to this route.' : 'No drivers yet.'}
+              </p>
+            )}
           </ul>
         </CardBody>
       </Card>

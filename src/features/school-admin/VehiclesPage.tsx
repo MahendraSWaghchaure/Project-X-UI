@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createVehicle, listVehicles, retireVehicle, updateVehicle, type UpdateVehicleRequest } from '@/lib/api/vehicles';
+import { listRoutes } from '@/lib/api/routes';
 import { useAuthStore } from '@/lib/authStore';
 import { toast } from '@/lib/toastStore';
 import { backendErrorMessage } from '@/lib/errorMessage';
@@ -13,6 +14,7 @@ import { Input } from '@/components/ui/Input';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
+import { RouteFilterSelect } from '@/components/ui/RouteFilterSelect';
 import type { Vehicle } from '@/types/school';
 import { SkeletonTable } from '@/components/ui/Skeleton';
 
@@ -103,11 +105,19 @@ export function VehiclesPage() {
   const queryClient = useQueryClient();
   const [editingId, setEditingId] = useState<number | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [routeFilter, setRouteFilter] = useState<number | undefined>(undefined);
   const { data: vehicles, isLoading } = useQuery({
     queryKey: ['vehicles', schoolId],
     queryFn: () => listVehicles(schoolId!),
     enabled: schoolId != null,
   });
+  const { data: routes } = useQuery({
+    queryKey: ['routes', schoolId],
+    queryFn: () => listRoutes(schoolId!),
+    enabled: schoolId != null && routeFilter != null,
+  });
+  const routeVehicleId = routeFilter != null ? routes?.find((r) => r.id === routeFilter)?.vehicleId : undefined;
+  const visibleVehicles = routeFilter == null ? vehicles : vehicles?.filter((v) => v.id === routeVehicleId);
   const {
     register,
     handleSubmit,
@@ -166,6 +176,8 @@ export function VehiclesPage() {
         </form>
       </Modal>
 
+      <RouteFilterSelect schoolId={schoolId!} value={routeFilter} onChange={setRouteFilter} />
+
       <Card>
         <CardHeader>
           <CardTitle>Fleet</CardTitle>
@@ -173,7 +185,7 @@ export function VehiclesPage() {
         <CardBody>
           {isLoading && <SkeletonTable rows={4} columns={3} />}
           <ul className="flex flex-col divide-y divide-slate-100">
-            {vehicles?.map((vehicle) =>
+            {visibleVehicles?.map((vehicle) =>
               editingId === vehicle.id ? (
                 <li key={vehicle.id} className="py-3">
                   <EditVehicleRow schoolId={schoolId!} vehicle={vehicle} onDone={() => setEditingId(null)} />
@@ -214,7 +226,11 @@ export function VehiclesPage() {
                 </li>
               ),
             )}
-            {vehicles?.length === 0 && <p className="py-3 text-sm text-slate-500">No vehicles yet.</p>}
+            {visibleVehicles?.length === 0 && (
+              <p className="py-3 text-sm text-slate-500">
+                {routeFilter != null ? 'No vehicle assigned to this route.' : 'No vehicles yet.'}
+              </p>
+            )}
           </ul>
         </CardBody>
       </Card>

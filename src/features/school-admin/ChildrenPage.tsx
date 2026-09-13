@@ -7,6 +7,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   autoAssignRoute,
   deactivateChild,
+  listChildrenForRoute,
   listChildrenForSchool,
   updateChildAsSchoolAdmin,
   type UpdateChildRequest,
@@ -22,6 +23,7 @@ import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { Pagination } from '@/components/ui/Pagination';
+import { RouteFilterSelect } from '@/components/ui/RouteFilterSelect';
 import { SkeletonTable } from '@/components/ui/Skeleton';
 import { optionalPhoneSchema } from '@/lib/validation';
 import type { Child } from '@/types/people';
@@ -164,6 +166,7 @@ export function ChildrenPage() {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [editingChildId, setEditingChildId] = useState<number | null>(null);
   const [childrenPage, setChildrenPage] = useState(0);
+  const [routeFilter, setRouteFilter] = useState<number | undefined>(undefined);
 
   const { data: childrenPageData, isLoading } = useQuery({
     // 'roster' distinguishes this from DashboardPage's count-only query (different page/size args
@@ -172,9 +175,14 @@ export function ChildrenPage() {
     // a dropdown while this page genuinely paginates.
     queryKey: ['children', schoolId, 'roster', childrenPage],
     queryFn: () => listChildrenForSchool(schoolId!, childrenPage, CHILDREN_PAGE_SIZE),
-    enabled: schoolId != null,
+    enabled: schoolId != null && routeFilter == null,
   });
-  const children = childrenPageData?.content;
+  const { data: routeChildren, isLoading: routeChildrenLoading } = useQuery({
+    queryKey: ['children', schoolId, 'by-route', routeFilter],
+    queryFn: () => listChildrenForRoute(schoolId!, routeFilter!),
+    enabled: schoolId != null && routeFilter != null,
+  });
+  const children = routeFilter != null ? routeChildren : childrenPageData?.content;
   const { data: parents, isLoading: parentsLoading } = useQuery({
     queryKey: ['parents', schoolId],
     queryFn: () => listParentsForSchool(schoolId!),
@@ -262,12 +270,14 @@ export function ChildrenPage() {
         )}
       </Modal>
 
+      <RouteFilterSelect schoolId={schoolId!} value={routeFilter} onChange={setRouteFilter} />
+
       <Card>
         <CardHeader>
           <CardTitle>Enrolled children</CardTitle>
         </CardHeader>
         <CardBody>
-          {isLoading && <SkeletonTable rows={5} columns={3} />}
+          {(isLoading || routeChildrenLoading) && <SkeletonTable rows={5} columns={3} />}
           <ul className="flex flex-col divide-y divide-slate-100">
             {children?.map((child) =>
               editingChildId === child.id ? (
@@ -326,9 +336,13 @@ export function ChildrenPage() {
                 </li>
               ),
             )}
-            {children?.length === 0 && <p className="py-3 text-sm text-slate-500">No children enrolled yet.</p>}
+            {children?.length === 0 && (
+              <p className="py-3 text-sm text-slate-500">
+                {routeFilter != null ? 'No children on this route.' : 'No children enrolled yet.'}
+              </p>
+            )}
           </ul>
-          {childrenPageData && (
+          {routeFilter == null && childrenPageData && (
             <Pagination
               className="mt-4"
               page={childrenPage}
