@@ -11,6 +11,7 @@ import { stopIcon, vehicleIcon } from '@/lib/leafletIcons';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card';
+import { Select } from '@/components/ui/Select';
 
 const DEFAULT_CENTER: [number, number] = [20.5937, 78.9629]; // India, used only before any position is known
 
@@ -34,7 +35,8 @@ function MapAutoFit({ positions }: { positions: [number, number][] }) {
 }
 
 export function TrackBusPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const locale = i18n.resolvedLanguage === 'hi' ? 'hi-IN' : 'en-IN';
   const { data: children } = useQuery({ queryKey: ['my-children'], queryFn: listMyChildren });
   const [selectedChildId, setSelectedChildId] = useState<number | null>(null);
   const childId = selectedChildId ?? children?.[0]?.id ?? null;
@@ -97,17 +99,17 @@ export function TrackBusPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-slate-900">{t('trackBus.title')}</h1>
         {children && children.length > 1 && (
-          <select
+          <Select
+            aria-label={t('trackBus.selectChild')}
             value={childId ?? ''}
             onChange={(e) => setSelectedChildId(Number(e.target.value))}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm"
           >
             {children.map((child) => (
               <option key={child.id} value={child.id}>
                 {child.firstName} {child.lastName}
               </option>
             ))}
-          </select>
+          </Select>
         )}
       </div>
 
@@ -130,9 +132,11 @@ export function TrackBusPage() {
             {location && (
               <Marker position={[location.latitude, location.longitude]} icon={vehicleIcon}>
                 <Popup>
-                  {location.speedKmh != null ? `${Math.round(location.speedKmh)} km/h` : 'Speed unknown'}
+                  {location.speedKmh != null
+                    ? t('parentApp.speedKmh', { speed: Math.round(location.speedKmh) })
+                    : t('parentApp.speedUnknown')}
                   <br />
-                  Last update: {new Date(location.recordedAt).toLocaleTimeString()}
+                  {t('parentApp.lastUpdate', { time: new Date(location.recordedAt).toLocaleTimeString(locale) })}
                 </Popup>
               </Marker>
             )}

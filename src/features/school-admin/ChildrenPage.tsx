@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -24,6 +24,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { Pagination } from '@/components/ui/Pagination';
 import { RouteFilterSelect } from '@/components/ui/RouteFilterSelect';
+import { Select } from '@/components/ui/Select';
 import { SkeletonTable } from '@/components/ui/Skeleton';
 import { optionalPhoneSchema } from '@/lib/validation';
 import type { Child } from '@/types/people';
@@ -31,14 +32,14 @@ import type { Child } from '@/types/people';
 const CHILDREN_PAGE_SIZE = 25;
 
 const inviteSchema = z.object({
-  email: z.string().email(),
+  email: z.string().email('validation.email'),
   phone: optionalPhoneSchema,
 });
 type InviteFormValues = z.infer<typeof inviteSchema>;
 
 const editChildSchema = z.object({
-  firstName: z.string().min(1),
-  lastName: z.string().min(1),
+  firstName: z.string().min(1, 'validation.required'),
+  lastName: z.string().min(1, 'validation.required'),
   dateOfBirth: z.string().optional(),
   classLevel: z.string().optional(),
   section: z.string().optional(),
@@ -63,6 +64,8 @@ function toRequest(values: EditChildFormValues): UpdateChildRequest {
 }
 
 function EditChildRow({ schoolId, child, onDone }: { schoolId: number; child: Child; onDone: () => void }) {
+  const { t } = useTranslation();
+  const err = (m?: string) => (m ? t(m) : undefined);
   const queryClient = useQueryClient();
   const { classLevel, section } = splitClassSection(child.classSection);
   const {
@@ -88,10 +91,10 @@ function EditChildRow({ schoolId, child, onDone }: { schoolId: number; child: Ch
     mutationFn: (values: EditChildFormValues) => updateChildAsSchoolAdmin(schoolId, child.id, toRequest(values)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['children', schoolId] });
-      toast.success('Student updated');
+      toast.success(t('schoolRiders.studentUpdated'));
       onDone();
     },
-    onError: (error) => toast.error(backendErrorMessage(error, 'Could not update student')),
+    onError: (error) => toast.error(backendErrorMessage(error, t('schoolRiders.updateFailed'))),
   });
 
   return (
@@ -99,60 +102,46 @@ function EditChildRow({ schoolId, child, onDone }: { schoolId: number; child: Ch
       onSubmit={handleSubmit((values) => updateMutation.mutate(values))}
       className="grid grid-cols-1 gap-3 rounded-md border border-blue-200 bg-blue-50/40 p-3 sm:grid-cols-2"
     >
-      <Input id={`child-first-name-${child.id}`} label="First name" error={errors.firstName?.message} {...register('firstName')} />
-      <Input id={`child-last-name-${child.id}`} label="Last name" error={errors.lastName?.message} {...register('lastName')} />
-      <Input id={`child-dob-${child.id}`} label="Date of birth" type="date" {...register('dateOfBirth')} />
+      <Input id={`child-first-name-${child.id}`} label={t('common.firstName')} required error={err(errors.firstName?.message)} {...register('firstName')} />
+      <Input id={`child-last-name-${child.id}`} label={t('common.lastName')} required error={err(errors.lastName?.message)} {...register('lastName')} />
+      <Input id={`child-dob-${child.id}`} label={t('schoolRiders.dob')} type="date" {...register('dateOfBirth')} />
       <div className="grid grid-cols-2 gap-3">
-        <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
-          Class
-          <select
-            id={`child-class-level-${child.id}`}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm"
-            {...register('classLevel')}
-          >
-            <option value="">Select&hellip;</option>
-            {CLASS_LEVELS.map((level) => (
-              <option key={level} value={level}>
-                {level}
-              </option>
-            ))}
-          </select>
-        </label>
-        <Input id={`child-section-${child.id}`} label="Section" placeholder="A, B, C…" {...register('section')} />
-      </div>
-      <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
-        Blood type
-        <select
-          id={`child-blood-type-${child.id}`}
-          className="rounded-md border border-slate-300 px-3 py-2 text-sm"
-          {...register('bloodType')}
-        >
-          <option value="">Unknown</option>
-          {BLOOD_TYPES.map((type) => (
-            <option key={type} value={type}>
-              {type}
+        <Select id={`child-class-level-${child.id}`} label={t('common.class')} {...register('classLevel')}>
+          <option value="">{t('schoolRiders.select')}</option>
+          {CLASS_LEVELS.map((level) => (
+            <option key={level} value={level}>
+              {level}
             </option>
           ))}
-        </select>
-      </label>
-      <Input id={`child-emergency-name-${child.id}`} label="Emergency contact name" {...register('emergencyContactName')} />
-      <Input id={`child-emergency-phone-${child.id}`} label="Emergency contact phone" {...register('emergencyContactPhone')} />
+        </Select>
+        <Input id={`child-section-${child.id}`} label={t('schoolRiders.section')} placeholder={t('schoolRiders.sectionPlaceholder')} {...register('section')} />
+      </div>
+      <Select id={`child-blood-type-${child.id}`} label={t('schoolRiders.bloodType')} {...register('bloodType')}>
+        <option value="">{t('common.unknown')}</option>
+        {BLOOD_TYPES.map((type) => (
+          <option key={type} value={type}>
+            {type}
+          </option>
+        ))}
+      </Select>
+      <Input id={`child-emergency-name-${child.id}`} label={t('schoolRiders.emergencyName')} {...register('emergencyContactName')} />
+      <Input id={`child-emergency-phone-${child.id}`} label={t('schoolRiders.emergencyPhone')} error={err(errors.emergencyContactPhone?.message)} {...register('emergencyContactPhone')} />
       <label className="flex flex-col gap-1 text-sm font-medium text-slate-700 sm:col-span-2">
-        Allergies / medical notes
+        {t('schoolRiders.allergies')}
         <textarea
           id={`child-allergies-${child.id}`}
           className="rounded-md border border-slate-300 px-3 py-2 text-sm"
           rows={2}
-          placeholder="e.g. peanut allergy, asthma inhaler in bag"
+          placeholder={t('schoolRiders.allergiesPlaceholder')}
           {...register('allergies')}
         />
       </label>
       <div className="flex gap-2 sm:col-span-2">
         <Button type="submit" isLoading={isSubmitting}>
-          Save
+          {t('common.save')}
         </Button>
         <Button type="button" variant="secondary" onClick={onDone}>
-          Cancel
+          {t('common.cancel')}
         </Button>
       </div>
     </form>
@@ -160,6 +149,8 @@ function EditChildRow({ schoolId, child, onDone }: { schoolId: number; child: Ch
 }
 
 export function ChildrenPage() {
+  const { t } = useTranslation();
+  const err = (m?: string) => (m ? t(m) : undefined);
   const schoolId = useAuthStore((state) => state.schoolId);
   const queryClient = useQueryClient();
   const [inviteLink, setInviteLink] = useState<string | null>(null);
@@ -202,43 +193,43 @@ export function ChildrenPage() {
       setInviteLink(`${window.location.origin}/accept-invite/${response.inviteToken}`);
       queryClient.invalidateQueries({ queryKey: ['parents', schoolId] });
       reset();
-      toast.success('Invite created');
+      toast.success(t('schoolRiders.inviteCreated'));
     },
-    onError: (error) => toast.error(backendErrorMessage(error, 'Could not send invite')),
+    onError: (error) => toast.error(backendErrorMessage(error, t('schoolRiders.inviteFailed'))),
   });
 
   const deactivateChildMutation = useMutation({
     mutationFn: (childId: number) => deactivateChild(schoolId!, childId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['children', schoolId] });
-      toast.success('Student deactivated');
+      toast.success(t('schoolRiders.studentDeactivated'));
     },
-    onError: (error) => toast.error(backendErrorMessage(error, 'Could not deactivate student')),
+    onError: (error) => toast.error(backendErrorMessage(error, t('schoolRiders.deactivateStudentFailed'))),
   });
 
   const autoAssignMutation = useMutation({
     mutationFn: (childId: number) => autoAssignRoute(schoolId!, childId),
     onSuccess: (child) => {
       queryClient.invalidateQueries({ queryKey: ['children', schoolId] });
-      toast.success(`${child.firstName} assigned to route #${child.routeId}`);
+      toast.success(t('schoolRiders.assigned', { name: child.firstName, routeId: child.routeId }));
     },
-    onError: (error) => toast.error(backendErrorMessage(error, 'Could not auto-assign a route')),
+    onError: (error) => toast.error(backendErrorMessage(error, t('schoolRiders.autoAssignFailed'))),
   });
 
   const deactivateParentMutation = useMutation({
     mutationFn: (parentId: number) => deactivateParent(schoolId!, parentId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['parents', schoolId] });
-      toast.success('Parent deactivated');
+      toast.success(t('schoolRiders.parentDeactivated'));
     },
-    onError: (error) => toast.error(backendErrorMessage(error, 'Could not deactivate parent')),
+    onError: (error) => toast.error(backendErrorMessage(error, t('schoolRiders.deactivateParentFailed'))),
   });
 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-900">Students &amp; Parents</h1>
-        <Button onClick={() => setShowInviteModal(true)}>+ Invite a parent</Button>
+        <h1 className="text-2xl font-bold text-slate-900">{t('schoolRiders.title')}</h1>
+        <Button onClick={() => setShowInviteModal(true)}>+ {t('schoolRiders.inviteParent')}</Button>
       </div>
 
       <Modal
@@ -247,26 +238,25 @@ export function ChildrenPage() {
           setShowInviteModal(false);
           setInviteLink(null);
         }}
-        title="Invite a parent"
+        title={t('schoolRiders.inviteParent')}
       >
         <p className="-mt-1 mb-4 text-sm text-slate-500">
-          Parents register their own children once they accept their invite. SMS/email delivery isn't wired up with
-          real credentials yet, so share the generated link with them directly for now.
+          {t('schoolRiders.inviteHint')}
         </p>
         <form onSubmit={handleSubmit((values) => inviteMutation.mutate(values))} className="flex flex-wrap items-end gap-3">
-          <Input label="Parent email" type="email" error={errors.email?.message} {...register('email')} />
-          <Input label="Parent phone (optional)" {...register('phone')} />
+          <Input label={t('schoolRiders.parentEmail')} type="email" required error={err(errors.email?.message)} {...register('email')} />
+          <Input label={t('schoolRiders.parentPhone')} error={err(errors.phone?.message)} {...register('phone')} />
           <Button type="submit" isLoading={isSubmitting}>
-            Send invite
+            {t('schoolRiders.sendInvite')}
           </Button>
         </form>
         {inviteLink && (
           <p className="mt-3 break-all rounded-md bg-slate-50 p-3 text-sm text-slate-700">
-            Invite link: <span className="font-mono">{inviteLink}</span>
+            {t('schoolRiders.inviteLink')} <span className="font-mono">{inviteLink}</span>
           </p>
         )}
         {inviteMutation.isError && (
-          <p className="mt-2 text-sm text-red-600">{backendErrorMessage(inviteMutation.error, 'Could not send invite.')}</p>
+          <p className="mt-2 text-sm text-red-600">{backendErrorMessage(inviteMutation.error, t('schoolRiders.inviteFailed'))}</p>
         )}
       </Modal>
 
@@ -274,7 +264,7 @@ export function ChildrenPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Enrolled children</CardTitle>
+          <CardTitle>{t('schoolRiders.enrolled')}</CardTitle>
         </CardHeader>
         <CardBody>
           {(isLoading || routeChildrenLoading) && <SkeletonTable rows={5} columns={3} />}
@@ -290,26 +280,22 @@ export function ChildrenPage() {
                     <p className="font-medium text-slate-900">
                       {child.firstName} {child.lastName}
                     </p>
-                    <p className="text-sm text-slate-500">{child.classSection ?? 'No class recorded'}</p>
+                    <p className="text-sm text-slate-500">{child.classSection ?? t('schoolRiders.noClass')}</p>
                     {(child.bloodType || child.allergies) && (
                       <p className="mt-1 text-xs text-slate-400">
-                        {child.bloodType ? `Blood type ${child.bloodType}` : ''}
+                        {child.bloodType ? t('schoolRiders.bloodTypeValue', { type: child.bloodType }) : ''}
                         {child.bloodType && child.allergies ? ' · ' : ''}
                         {child.allergies ?? ''}
                       </p>
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge tone={child.status === 'ACTIVE' ? 'success' : 'warning'}>{child.status}</Badge>
-                    <span className="text-sm text-slate-500">{child.routeId ? `Route #${child.routeId}` : 'No route yet'}</span>
+                    <Badge tone={child.status === 'ACTIVE' ? 'success' : 'warning'}>{t(`schoolRiders.childStatus.${child.status}`)}</Badge>
+                    <span className="text-sm text-slate-500">{child.routeId ? t('driver.route', { id: child.routeId }) : t('schoolRiders.noRoute')}</span>
                     {child.insurancePolicyId ? (
-                      <Badge tone="info">Insured</Badge>
+                      <Badge tone="info">{t('schoolRiders.insured')}</Badge>
                     ) : (
-                      <Link to="/school-admin/insurance">
-                        <Badge tone="neutral" className="cursor-pointer hover:bg-slate-200">
-                          Not insured
-                        </Badge>
-                      </Link>
+                      <Badge tone="neutral">{t('schoolRiders.notInsured')}</Badge>
                     )}
                     {!child.routeId && (
                       <Button
@@ -317,11 +303,11 @@ export function ChildrenPage() {
                         isLoading={autoAssignMutation.isPending && autoAssignMutation.variables === child.id}
                         onClick={() => autoAssignMutation.mutate(child.id)}
                       >
-                        Auto-assign route
+                        {t('schoolRiders.autoAssign')}
                       </Button>
                     )}
                     <Button variant="secondary" onClick={() => setEditingChildId(child.id)}>
-                      Edit
+                      {t('common.edit')}
                     </Button>
                     {child.status === 'ACTIVE' && (
                       <Button
@@ -329,7 +315,7 @@ export function ChildrenPage() {
                         isLoading={deactivateChildMutation.isPending && deactivateChildMutation.variables === child.id}
                         onClick={() => deactivateChildMutation.mutate(child.id)}
                       >
-                        Deactivate
+                        {t('schoolRiders.deactivate')}
                       </Button>
                     )}
                   </div>
@@ -338,7 +324,7 @@ export function ChildrenPage() {
             )}
             {children?.length === 0 && (
               <p className="py-3 text-sm text-slate-500">
-                {routeFilter != null ? 'No children on this route.' : 'No children enrolled yet.'}
+                {routeFilter != null ? t('schoolRiders.noChildrenOnRoute') : t('schoolRiders.noChildren')}
               </p>
             )}
           </ul>
@@ -357,7 +343,7 @@ export function ChildrenPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Parents</CardTitle>
+          <CardTitle>{t('schoolRiders.parents')}</CardTitle>
         </CardHeader>
         <CardBody>
           {parentsLoading && <SkeletonTable rows={4} columns={2} />}
@@ -368,23 +354,23 @@ export function ChildrenPage() {
                   <p className="font-medium text-slate-900">
                     {parent.firstName || parent.lastName ? `${parent.firstName ?? ''} ${parent.lastName ?? ''}`.trim() : parent.email}
                   </p>
-                  <p className="text-sm text-slate-500">{parent.email ?? 'No email on file'}</p>
+                  <p className="text-sm text-slate-500">{parent.email ?? t('schoolRiders.noEmail')}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge tone={parent.accountStatus === 'ACTIVE' ? 'success' : 'neutral'}>{parent.accountStatus}</Badge>
+                  <Badge tone={parent.accountStatus === 'ACTIVE' ? 'success' : 'neutral'}>{t(`schoolRiders.accountStatus.${parent.accountStatus}`, { defaultValue: parent.accountStatus })}</Badge>
                   {parent.accountStatus !== 'DISABLED' && (
                     <Button
                       variant="danger"
                       isLoading={deactivateParentMutation.isPending && deactivateParentMutation.variables === parent.id}
                       onClick={() => deactivateParentMutation.mutate(parent.id)}
                     >
-                      Deactivate
+                      {t('schoolRiders.deactivate')}
                     </Button>
                   )}
                 </div>
               </li>
             ))}
-            {parents?.length === 0 && <p className="py-3 text-sm text-slate-500">No parents invited yet.</p>}
+            {parents?.length === 0 && <p className="py-3 text-sm text-slate-500">{t('schoolRiders.noParents')}</p>}
           </ul>
         </CardBody>
       </Card>

@@ -39,6 +39,17 @@ export function listMyChildren(): Promise<Child[]> {
   return apiClient.get<ApiResponse<Child[]>>('/parents/me/children').then(unwrap);
 }
 
+export interface RelevantDriver {
+  driverId: number;
+  name: string;
+  vehicleNo: string;
+}
+
+/** E3: drivers who actually drive a route carrying one of this parent's children (deduped) - for the grievance "against a driver" select. */
+export function listMyRelevantDrivers(): Promise<RelevantDriver[]> {
+  return apiClient.get<ApiResponse<RelevantDriver[]>>('/parents/me/relevant-drivers').then(unwrap);
+}
+
 export function createChildAsParent(request: CreateChildRequest): Promise<Child> {
   return apiClient.post<ApiResponse<Child>>('/parents/me/children', request).then(unwrap);
 }

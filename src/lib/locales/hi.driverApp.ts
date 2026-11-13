@@ -1,0 +1,46 @@
+import type { enDriverApp } from './en.driverApp';
+import type { Translations } from './types';
+
+/** Hindi strings: driverApp area. Typed against the English tree so a missing key fails the build. */
+export const hiDriverApp: Translations<typeof enDriverApp> = {
+  driverGrievances: {
+    raiseTitle: 'शिकायत दर्ज करें',
+    raiseHelp: 'वाहन की समस्या, भुगतान की दिक्कत, या अपने रूट से जुड़ी कोई भी बात। यह सीधे आपके स्कूल तक जाती है (या Sunju टीम तक, अगर आप अभी किसी स्कूल से जुड़े नहीं हैं)।',
+    otherLabel: 'समस्या बताएँ ("अन्य" के लिए ज़रूरी)',
+    linkedTrip: 'संबंधित ट्रिप (वैकल्पिक)',
+    noTrip: 'किसी खास ट्रिप के बारे में नहीं',
+    tripOption: 'ट्रिप #{{id}} ({{status}})',
+    subject: 'विषय',
+    submitted: 'शिकायत दर्ज हो गई',
+    submitFailed: 'शिकायत दर्ज नहीं हो सकी',
+    yourTitle: 'आपकी शिकायतें',
+    response: 'जवाब:',
+    none: 'अभी तक कोई शिकायत दर्ज नहीं की गई।',
+  },
+  payroll: {
+    title: 'वेतन',
+    bankTitle: 'बैंक विवरण',
+    bankHelp: 'मासिक वेतन पाने के लिए ज़रूरी, जो हर महीने की 10 तारीख़ को दिया जाता है।',
+    accountShort: 'खाता',
+    ifsc: 'IFSC',
+    holder: 'खाताधारक का नाम',
+    accountNumber: 'खाता संख्या',
+    reEnter: 'बदलने के लिए दोबारा लिखें',
+    ifscCode: 'IFSC कोड',
+    lookingUp: 'शाखा खोजी जा रही है…',
+    ifscNotFound: 'कोड पहचाना नहीं गया - दोबारा जाँचें',
+    accountInvalid: '6 से 20 अंक होने चाहिए',
+    ifscInvalid: 'सही IFSC कोड होना चाहिए, जैसे HDFC0001234',
+    saveBank: 'बैंक विवरण सहेजें',
+    saved: 'बैंक विवरण सहेज लिया गया',
+    saveFailed: 'बैंक विवरण सहेजा नहीं जा सका',
+    deleteTitle: 'बैंक विवरण हटाएँ?',
+    deleteConfirm: 'जब तक आप बैंक विवरण फिर से नहीं जोड़ते, आपका वेतन नहीं भेजा जा सकेगा।',
+    deleted: 'बैंक विवरण हटा दिया गया',
+    deleteFailed: 'बैंक विवरण हटाया नहीं जा सका',
+    historyTitle: 'वेतन का इतिहास',
+    historyEmpty: 'अभी वेतन का कोई इतिहास नहीं है।',
+    amount: 'भुगतान राशि',
+    transactionId: 'लेन-देन आईडी',
+  },
+};

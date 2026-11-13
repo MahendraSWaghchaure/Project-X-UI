@@ -4,44 +4,67 @@ import { cn } from '@/lib/cn';
 /**
  * Thin, composable wrappers over the native table elements - not a data-grid abstraction.
  * Usage mirrors Card: <Table><TableHead><TableRow><TableHeaderCell>.../>...
+ * For a responsive list that turns into cards on phones, use <DataTable> (DataTable.tsx) instead.
  */
-export function Table({ className, ...props }: HTMLAttributes<HTMLTableElement>) {
+interface TableProps extends HTMLAttributes<HTMLTableElement> {
+  /** Keeps the header row visible while the body scrolls (the table scrolls inside a 70vh box). */
+  stickyHeader?: boolean;
+  /** Alternating row tint. */
+  zebra?: boolean;
+  /** Tighter rows for data-heavy screens. */
+  dense?: boolean;
+}
+
+export function Table({ className, stickyHeader, zebra, dense, ...props }: TableProps) {
   return (
-    <div className="overflow-x-auto">
-      <table className={cn('w-full min-w-full text-left text-sm', className)} {...props} />
+    <div className={cn('overflow-x-auto', stickyHeader && 'max-h-[70vh] overflow-y-auto')}>
+      <table
+        data-zebra={zebra ? '' : undefined}
+        data-dense={dense ? '' : undefined}
+        className={cn(
+          'w-full min-w-full border-separate border-spacing-0 text-left text-sm',
+          '[&[data-zebra]_tbody_tr:nth-child(even)]:bg-slate-50',
+          '[&[data-dense]_td]:py-2 [&[data-dense]_th]:py-2',
+          className,
+        )}
+        {...props}
+      />
     </div>
   );
 }
 
 export function TableHead({ className, ...props }: HTMLAttributes<HTMLTableSectionElement>) {
-  return <thead className={cn('border-b border-slate-200', className)} {...props} />;
+  return <thead className={cn(className)} {...props} />;
 }
 
 export function TableBody({ className, ...props }: HTMLAttributes<HTMLTableSectionElement>) {
-  return <tbody className={cn('divide-y divide-slate-100', className)} {...props} />;
+  return <tbody className={cn('[&_tr:last-child_td]:border-b-0', className)} {...props} />;
 }
 
 export function TableRow({ className, ...props }: HTMLAttributes<HTMLTableRowElement>) {
-  return <tr className={cn('hover:bg-slate-50', className)} {...props} />;
+  return <tr className={cn('transition-colors hover:bg-slate-50', className)} {...props} />;
 }
 
 export function TableHeaderCell({ className, ...props }: ThHTMLAttributes<HTMLTableCellElement>) {
   return (
     <th
-      className={cn('px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500', className)}
+      className={cn(
+        'sticky top-0 z-10 whitespace-nowrap border-b border-slate-200 bg-slate-100 px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-600',
+        className,
+      )}
       {...props}
     />
   );
 }
 
 export function TableCell({ className, ...props }: TdHTMLAttributes<HTMLTableCellElement>) {
-  return <td className={cn('px-4 py-3 text-slate-700', className)} {...props} />;
+  return <td className={cn('border-b border-slate-100 px-4 py-3 align-middle text-slate-700', className)} {...props} />;
 }
 
 export function TableEmpty({ colSpan, children }: { colSpan: number; children: ReactNode }) {
   return (
     <tr>
-      <td colSpan={colSpan} className="px-4 py-8 text-center text-sm text-slate-500">
+      <td colSpan={colSpan} className="px-4 py-10 text-center text-sm text-slate-500">
         {children}
       </td>
     </tr>

@@ -2,35 +2,42 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 import { useMutation } from '@tanstack/react-query';
 import { selfRegisterDriver } from '@/lib/api/drivers';
 import { backendErrorMessage } from '@/lib/errorMessage';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Logo } from '@/components/ui/Logo';
 import { phoneSchema } from '@/lib/validation';
 
 const schema = z.object({
-  firstName: z.string().min(1),
-  lastName: z.string().min(1),
-  email: z.string().email(),
-  password: z.string().min(8),
+  firstName: z.string().min(1, 'validation.required'),
+  lastName: z.string().min(1, 'validation.required'),
+  email: z.string().email('validation.email'),
+  password: z.string().min(8, 'validation.passwordMin'),
   phone: phoneSchema,
-  licenseNumber: z.string().min(1),
+  licenseNumber: z.string().min(1, 'validation.required'),
   licenseExpiry: z.string().optional(),
   vehicleRegistrationNumber: z
     .string()
-    .min(1)
+    .min(1, 'validation.required')
     .transform((v) => v.toUpperCase())
-    .refine((v) => /^[A-Z0-9]+$/.test(v), 'Letters and digits only, no spaces or symbols'),
+    .refine((v) => /^[A-Z0-9]+$/.test(v), 'driverRegister.regAlnum'),
   vehicleType: z.enum(['VAN', 'BUS']),
-  vehicleSeatCapacity: z.coerce.number().int().min(1),
+  vehicleSeatCapacity: z.coerce
+    .number({ invalid_type_error: 'validation.number' })
+    .int('validation.number')
+    .min(1, 'driverRegister.seatMin'),
 });
 type FormValues = z.infer<typeof schema>;
 
 export function DriverRegisterPage() {
+  const { t } = useTranslation();
+  const err = (m?: string) => (m ? t(m) : undefined);
   const [done, setDone] = useState(false);
   const {
     register,
@@ -49,13 +56,12 @@ export function DriverRegisterPage() {
         <Logo size="lg" />
         <Card className="w-full max-w-md text-center">
           <CardBody className="flex flex-col gap-4 py-8">
-            <h1 className="text-xl font-semibold text-slate-900">You're registered</h1>
+            <h1 className="text-xl font-semibold text-slate-900">{t('driverRegister.doneTitle')}</h1>
             <p className="text-sm text-slate-600">
-              Your driver and vehicle details are saved. A school can now find and hire you on Sunju — once they do,
-              you'll be able to sign in and see your assigned route.
+              {t('driverRegister.doneBody')}
             </p>
             <Link to="/login">
-              <Button className="w-full">Go to sign in</Button>
+              <Button className="w-full">{t('driverRegister.goToSignIn')}</Button>
             </Link>
           </CardBody>
         </Card>
@@ -68,10 +74,9 @@ export function DriverRegisterPage() {
       <Logo size="lg" />
       <Card className="w-full max-w-2xl">
         <CardHeader>
-          <CardTitle>Register as an independent driver</CardTitle>
+          <CardTitle>{t('driverRegister.title')}</CardTitle>
           <p className="mt-1 text-sm text-slate-500">
-            Run your own van or bus? Register here with your details and your vehicle's details. Schools on Sunju can
-            then find and hire you — we hand your verified profile straight to them.
+            {t('driverRegister.subtitle')}
           </p>
         </CardHeader>
         <CardBody>
@@ -79,47 +84,43 @@ export function DriverRegisterPage() {
             onSubmit={handleSubmit((values) => mutation.mutate(values))}
             className="grid grid-cols-1 gap-4 sm:grid-cols-2"
           >
-            <Input label="First name" error={errors.firstName?.message} {...register('firstName')} />
-            <Input label="Last name" error={errors.lastName?.message} {...register('lastName')} />
-            <Input label="Email" type="email" error={errors.email?.message} {...register('email')} />
-            <Input label="Password" type="password" error={errors.password?.message} {...register('password')} />
-            <Input label="Phone" error={errors.phone?.message} {...register('phone')} />
-            <Input label="License number" error={errors.licenseNumber?.message} {...register('licenseNumber')} />
-            <Input label="License expiry" type="date" {...register('licenseExpiry')} />
+            <Input label={t('common.firstName')} required error={err(errors.firstName?.message)} {...register('firstName')} />
+            <Input label={t('common.lastName')} required error={err(errors.lastName?.message)} {...register('lastName')} />
+            <Input label={t('common.email')} type="email" required error={err(errors.email?.message)} {...register('email')} />
+            <Input label={t('common.password')} type="password" required error={err(errors.password?.message)} {...register('password')} />
+            <Input label={t('common.phone')} required error={err(errors.phone?.message)} {...register('phone')} />
+            <Input label={t('driverRegister.licenseNumber')} required error={err(errors.licenseNumber?.message)} {...register('licenseNumber')} />
+            <Input label={t('driverRegister.licenseExpiry')} type="date" {...register('licenseExpiry')} />
             <div />
 
             <div className="sm:col-span-2 border-t border-slate-100 pt-4 text-sm font-medium text-slate-500">
-              Your vehicle
+              {t('driverRegister.yourVehicle')}
             </div>
             <Input
-              label="Registration number"
-              error={errors.vehicleRegistrationNumber?.message}
+              label={t('driverRegister.registrationNumber')}
+              required
+              error={err(errors.vehicleRegistrationNumber?.message)}
               {...register('vehicleRegistrationNumber')}
             />
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-slate-700">Type</label>
-              <select className="rounded-md border border-slate-300 px-3 py-2 text-sm" {...register('vehicleType')}>
-                <option value="VAN">Van</option>
-                <option value="BUS">Bus</option>
-              </select>
-            </div>
+            <Select label={t('driverRegister.type')} required {...register('vehicleType')}>
+              <option value="VAN">{t('enums.vehicleType.VAN')}</option>
+              <option value="BUS">{t('enums.vehicleType.BUS')}</option>
+            </Select>
             <Input
-              label="Seat capacity"
+              label={t('driverRegister.seatCapacity')}
               type="number"
-              error={errors.vehicleSeatCapacity?.message}
+              required
+              error={err(errors.vehicleSeatCapacity?.message)}
               {...register('vehicleSeatCapacity')}
             />
 
             {mutation.isError && (
               <p className="sm:col-span-2 text-sm text-red-600">
-                {backendErrorMessage(
-                  mutation.error,
-                  'Could not register. Check your details and try again.',
-                )}
+                {backendErrorMessage(mutation.error, t('driverRegister.error'))}
               </p>
             )}
             <Button type="submit" isLoading={isSubmitting} className="sm:col-span-2">
-              Register
+              {t('driverRegister.submit')}
             </Button>
           </form>
         </CardBody>

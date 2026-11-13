@@ -1,0 +1,41 @@
+/** Pre-existing top-level strings (login, trackBus, notifications, attendance history). */
+export const enBase = {
+  login: {
+    title: 'Sign in',
+    email: 'Email',
+    password: 'Password',
+    submit: 'Sign in',
+    forgotPassword: 'Forgot password?',
+    passwordResetSuccess: 'Password reset - sign in with your new password.',
+  },
+  trackBus: {
+    title: 'Track Bus',
+    status: 'Status',
+    liveConnection: 'Live connection',
+    connected: 'connected',
+    connecting: 'connecting…',
+    noPosition: "No live position yet for this child's bus.",
+    confirmHomeArrival: 'Confirm my child reached home safely',
+    confirmSuccess: 'Thanks, marked as confirmed.',
+    confirmError: 'Could not confirm right now — there may be no drop-off trip today yet.',
+    yourDriver: 'Your driver today',
+    verified: 'Background verified',
+    rejected: 'Verification failed',
+    pending: 'Verification pending',
+    callDriver: 'Call driver',
+    sosBanner: 'SOS alert triggered on this bus. The school has been notified.',
+    selectChild: 'Select child',
+  },
+  notifications: {
+    title: 'Notifications',
+  },
+  attendance: {
+    title: 'Attendance history',
+    last30Days: 'Last 30 days',
+    markAbsent: 'Mark absent',
+    notRiding: 'Not riding that day',
+    clear: 'Clear',
+    boardingQr: 'Boarding QR code',
+    inviteGuardian: 'Invite a guardian',
+  },
+};

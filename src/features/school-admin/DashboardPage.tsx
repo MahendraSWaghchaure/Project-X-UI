@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { listTripsForSchool } from '@/lib/api/trips';
 import { getSchool } from '@/lib/api/schools';
 import { getSchoolDashboardStats } from '@/lib/api/stats';
@@ -47,6 +48,8 @@ const STATUS_TONE: Record<TripStatus, 'neutral' | 'success' | 'warning' | 'dange
 };
 
 export function SchoolAdminDashboardPage() {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.resolvedLanguage === 'hi' ? 'hi-IN' : 'en-IN';
   const schoolId = useAuthStore((state) => state.schoolId);
   const enabled = schoolId != null;
   const queryClient = useQueryClient();
@@ -62,9 +65,9 @@ export function SchoolAdminDashboardPage() {
     mutationFn: (sosEventId: number) => resolveSos(sosEventId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['active-sos', schoolId] });
-      toast.success('SOS marked resolved');
+      toast.success(t('schoolDash.sosResolved'));
     },
-    onError: () => toast.error('Could not resolve SOS'),
+    onError: () => toast.error(t('schoolDash.sosResolveFailed')),
   });
 
   // One indexed-aggregate call for every stat card below, instead of fetching every vehicle,
@@ -86,13 +89,11 @@ export function SchoolAdminDashboardPage() {
   });
 
   const delayedTrips = stats?.tripsDelayed ?? 0;
-  const payrollFailed = stats?.payrollFailed ?? 0;
-  const payrollPending = stats?.payrollPending ?? 0;
 
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">{school?.name ?? 'Dashboard'}</h1>
+        <h1 className="text-2xl font-bold text-slate-900">{school?.name ?? t('schoolDash.fallbackTitle')}</h1>
         <p className="text-sm text-slate-500">{school?.city}</p>
       </div>
 
@@ -101,7 +102,10 @@ export function SchoolAdminDashboardPage() {
           {activeSos.map((sos) => (
             <div key={sos.id} className="flex items-center justify-between gap-3">
               <span>
-                SOS on trip #{sos.tripId} at {new Date(sos.triggeredAt).toLocaleTimeString()}
+                {t('schoolDash.sosOnTrip', {
+                  tripId: sos.tripId,
+                  time: new Date(sos.triggeredAt).toLocaleTimeString(locale),
+                })}
                 {sos.note ? ` - ${sos.note}` : ''}
               </span>
               <Button
@@ -109,7 +113,7 @@ export function SchoolAdminDashboardPage() {
                 isLoading={resolveSosMutation.isPending && resolveSosMutation.variables === sos.id}
                 onClick={() => resolveSosMutation.mutate(sos.id)}
               >
-                Mark resolved
+                {t('schoolDash.markResolved')}
               </Button>
             </div>
           ))}
@@ -117,64 +121,46 @@ export function SchoolAdminDashboardPage() {
       )}
       {delayedTrips > 0 && (
         <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          {delayedTrips} trip{delayedTrips > 1 ? 's are' : ' is'} currently running past dismissal time - see the
-          Trips tab.
-        </div>
-      )}
-      {payrollFailed > 0 && (
-        <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-          {payrollFailed} driver payout{payrollFailed > 1 ? 's' : ''} failed to disburse this cycle.{' '}
-          <Link to="/school-admin/payments" className="font-semibold underline">
-            Review payroll
-          </Link>
+          {t('schoolDash.delayedBanner', { count: delayedTrips })}
         </div>
       )}
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         <StatCard
-          label="Vehicles"
+          label={t('schoolDash.vehicles')}
           value={stats?.vehiclesTotal ?? '—'}
-          hint={stats ? `${stats.vehiclesActive} active` : undefined}
+          hint={stats ? t('schoolDash.vehiclesActive', { count: stats.vehiclesActive }) : undefined}
           to="/school-admin/vehicles"
         />
         <StatCard
-          label="Drivers"
+          label={t('schoolDash.drivers')}
           value={stats?.driversTotal ?? '—'}
           hint={
             stats && stats.independentDriversAvailable > 0
-              ? `${stats.independentDriversAvailable} available to hire`
+              ? t('schoolDash.driversAvailable', { count: stats.independentDriversAvailable })
               : undefined
           }
           to="/school-admin/drivers"
         />
-        <StatCard label="Routes" value={stats?.routesTotal ?? '—'} to="/school-admin/routes" />
-        <StatCard label="Students" value={stats?.studentsTotal ?? '—'} to="/school-admin/children" />
+        <StatCard label={t('schoolDash.routes')} value={stats?.routesTotal ?? '—'} to="/school-admin/routes" />
+        <StatCard label={t('schoolDash.students')} value={stats?.studentsTotal ?? '—'} to="/school-admin/children" />
         <StatCard
-          label="Trips today"
+          label={t('schoolDash.tripsToday')}
           value={stats?.tripsToday ?? '—'}
-          hint={stats ? `${stats.tripsInProgress} in progress` : undefined}
+          hint={stats ? t('schoolDash.tripsInProgress', { count: stats.tripsInProgress }) : undefined}
           to="/school-admin/trips"
         />
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-        <StatCard label="Open grievances" value={stats?.openGrievances ?? '—'} to="/school-admin/grievances" />
-        <StatCard
-          label="Revenue this month"
-          value={`₹${(stats?.revenueThisMonth ?? 0).toLocaleString('en-IN')}`}
-          to="/school-admin/payments"
-        />
-        <StatCard
-          label="Payroll this cycle"
-          value={payrollPending > 0 ? `${payrollPending} pending` : payrollFailed > 0 ? `${payrollFailed} failed` : 'up to date'}
-          danger={payrollFailed > 0}
-          to="/school-admin/payments"
-        />
+        <StatCard label={t('schoolDash.openGrievances')} value={stats?.openGrievances ?? '—'} to="/school-admin/grievances" />
+        <StatCard label={t('nav.classrooms')} value="→" to="/school-admin/classrooms" />
+        <StatCard label={t('nav.teachers')} value="→" to="/school-admin/teachers" />
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Today&rsquo;s trips</CardTitle>
+          <CardTitle>{t('schoolDash.todaysTrips')}</CardTitle>
         </CardHeader>
         <CardBody>
           <ul className="divide-y divide-slate-100">
@@ -182,16 +168,17 @@ export function SchoolAdminDashboardPage() {
               <li key={trip.id} className="flex items-center justify-between py-3">
                 <div>
                   <p className="font-medium text-slate-900">
-                    Route #{trip.routeId} &middot; {trip.direction === 'MORNING_PICKUP' ? 'Morning pickup' : 'Afternoon drop'}
+                    {t('driver.route', { id: trip.routeId })} &middot;{' '}
+                    {trip.direction === 'MORNING_PICKUP' ? t('driver.morning') : t('driver.afternoon')}
                   </p>
                   <p className="text-sm text-slate-500">
-                    Vehicle #{trip.vehicleId} &middot; Driver #{trip.driverId}
+                    {t('schoolDash.vehicleDriver', { vehicle: trip.vehicleId, driver: trip.driverId })}
                   </p>
                 </div>
-                <Badge tone={STATUS_TONE[trip.status]}>{trip.status}</Badge>
+                <Badge tone={STATUS_TONE[trip.status]}>{t(`enums.tripStatus.${trip.status}`)}</Badge>
               </li>
             ))}
-            {trips?.length === 0 && <p className="py-3 text-sm text-slate-500">No trips scheduled for today yet.</p>}
+            {trips?.length === 0 && <p className="py-3 text-sm text-slate-500">{t('schoolDash.noTripsToday')}</p>}
           </ul>
         </CardBody>
       </Card>

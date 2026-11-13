@@ -1,92 +1,119 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { listMyGrievances, raiseGrievance } from '@/lib/api/grievances';
+import { listMyTripsAsDriver } from '@/lib/api/trips';
+import { todayLocal } from '@/lib/dates';
 import { useAuthStore } from '@/lib/authStore';
 import { useLiveTopic } from '@/hooks/useLiveTopic';
+import { formatDateTime, useIntlLocale } from '@/lib/format';
 import { toast } from '@/lib/toastStore';
+import { backendErrorMessage } from '@/lib/errorMessage';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
+import { Textarea } from '@/components/ui/Textarea';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card';
-import { GrievanceStatusBadge } from '@/components/grievance/GrievanceStatusBadge';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { PageHeader } from '@/components/ui/PageHeader';
 import { SkeletonTable } from '@/components/ui/Skeleton';
+import { GrievanceStatusBadge } from '@/components/grievance/GrievanceStatusBadge';
+import { grievanceTypeLabel } from '@/features/grievances/grievanceLabels';
+import { DRIVER_GRIEVANCE_TYPES } from '@/types/grievance';
 
-const CATEGORIES = ['SAFETY', 'VEHICLE_CONDITION', 'DRIVER_CONDUCT', 'PAYMENT', 'DELAY', 'OTHER'] as const;
-
-const schema = z.object({
-  category: z.enum(CATEGORIES),
-  subject: z.string().min(1),
-  description: z.string().min(1),
-});
+const schema = z
+  .object({
+    type: z.enum(DRIVER_GRIEVANCE_TYPES as [string, ...string[]]),
+    otherDescription: z.string().trim().max(500).optional(),
+    tripId: z.string().optional(),
+    subject: z.string().trim().min(1, 'validation.required'),
+    description: z.string().trim().min(1, 'validation.required'),
+  })
+  .superRefine((v, ctx) => {
+    if (v.type === 'OTHER' && !v.otherDescription?.trim()) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['otherDescription'], message: 'validation.required' });
+    }
+  });
 type FormValues = z.infer<typeof schema>;
 
 export function DriverGrievancesPage() {
+  const { t } = useTranslation();
+  const err = (m?: string) => (m ? t(m) : undefined);
+  const locale = useIntlLocale();
   const userId = useAuthStore((state) => state.userId);
   const queryClient = useQueryClient();
   const { data: grievances, isLoading } = useQuery({ queryKey: ['my-grievances'], queryFn: listMyGrievances });
+  const { data: trips } = useQuery({ queryKey: ['driver-trips-for-grievance'], queryFn: () => listMyTripsAsDriver(todayLocal()), retry: false });
 
   useLiveTopic([userId ? `/topic/users/${userId}/grievances` : null], () => {
-    queryClient.invalidateQueries({ queryKey: ['my-grievances'] });
+    void queryClient.invalidateQueries({ queryKey: ['my-grievances'] });
   });
 
   const {
     register,
     handleSubmit,
     reset,
+    watch,
     formState: { errors, isSubmitting },
-  } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: { category: 'OTHER' } });
+  } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: { type: 'OTHER' } });
+  const type = watch('type');
 
   const raiseMutation = useMutation({
-    mutationFn: (values: FormValues) => raiseGrievance(values),
+    mutationFn: (v: FormValues) =>
+      raiseGrievance({
+        type: v.type as (typeof DRIVER_GRIEVANCE_TYPES)[number],
+        otherDescription: v.type === 'OTHER' ? v.otherDescription?.trim() : undefined,
+        tripId: v.tripId ? Number(v.tripId) : undefined,
+        subject: v.subject,
+        description: v.description,
+      }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['my-grievances'] });
-      reset();
-      toast.success('Grievance submitted');
+      void queryClient.invalidateQueries({ queryKey: ['my-grievances'] });
+      reset({ type: 'OTHER' });
+      toast.success(t('driverGrievances.submitted'));
     },
-    onError: () => toast.error('Could not submit grievance'),
+    onError: (error) => toast.error(backendErrorMessage(error, t('driverGrievances.submitFailed'))),
   });
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold text-slate-900">Grievances</h1>
+      <PageHeader title={t('grievances.title')} />
 
       <Card>
         <CardHeader>
-          <CardTitle>Raise a grievance</CardTitle>
-          <p className="mt-1 text-sm text-slate-500">
-            Vehicle issue, payment problem, or anything else about your route - this goes straight to your school
-            {' '}(or to the Sunju team if you're not attached to a school yet).
-          </p>
+          <CardTitle>{t('driverGrievances.raiseTitle')}</CardTitle>
+          <p className="mt-1 text-sm text-slate-500">{t('driverGrievances.raiseHelp')}</p>
         </CardHeader>
         <CardBody>
-          <form
-            onSubmit={handleSubmit((values) => raiseMutation.mutate(values))}
-            className="grid grid-cols-1 gap-4 sm:grid-cols-2"
-          >
-            <div className="flex flex-col gap-1 sm:col-span-2">
-              <label className="text-sm font-medium text-slate-700">Category</label>
-              <select className="rounded-md border border-slate-300 px-3 py-2 text-sm sm:w-1/2" {...register('category')}>
-                {CATEGORIES.map((c) => (
-                  <option key={c} value={c}>
-                    {c.replace('_', ' ')}
+          <form onSubmit={handleSubmit((values) => raiseMutation.mutate(values))} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Select label={t('grievances.col.type')} required {...register('type')}>
+              {DRIVER_GRIEVANCE_TYPES.map((x) => (
+                <option key={x} value={x}>
+                  {t(`enums.grievanceType.${x}`)}
+                </option>
+              ))}
+            </Select>
+            {type === 'OTHER' && (
+              <Input label={t('driverGrievances.otherLabel')} required error={err(errors.otherDescription?.message)} maxLength={500} {...register('otherDescription')} />
+            )}
+            {trips && trips.length > 0 && (
+              <Select label={t('driverGrievances.linkedTrip')} {...register('tripId')}>
+                <option value="">{t('driverGrievances.noTrip')}</option>
+                {trips.map((trip) => (
+                  <option key={trip.id} value={trip.id}>
+                    {t('driverGrievances.tripOption', { id: trip.id, status: t(`enums.tripStatus.${trip.status}`, { defaultValue: trip.status }) })}
                   </option>
                 ))}
-              </select>
+              </Select>
+            )}
+            <Input label={t('driverGrievances.subject')} required className="sm:col-span-2" error={err(errors.subject?.message)} {...register('subject')} />
+            <div className="sm:col-span-2">
+              <Textarea label={t('common.description')} required rows={4} error={err(errors.description?.message)} {...register('description')} />
             </div>
-            <Input label="Subject" className="sm:col-span-2" error={errors.subject?.message} {...register('subject')} />
-            <div className="flex flex-col gap-1 sm:col-span-2">
-              <label className="text-sm font-medium text-slate-700">Description</label>
-              <textarea
-                rows={4}
-                className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                {...register('description')}
-              />
-              {errors.description && <span className="text-xs text-red-600">{errors.description.message}</span>}
-            </div>
-            {raiseMutation.isError && <p className="sm:col-span-2 text-sm text-red-600">Could not submit grievance.</p>}
-            <Button type="submit" isLoading={isSubmitting} className="sm:col-span-2 sm:w-fit">
-              Submit
+            <Button type="submit" isLoading={isSubmitting || raiseMutation.isPending} className="sm:col-span-2 sm:w-fit">
+              {t('common.submit')}
             </Button>
           </form>
         </CardBody>
@@ -94,7 +121,7 @@ export function DriverGrievancesPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Your grievances</CardTitle>
+          <CardTitle>{t('driverGrievances.yourTitle')}</CardTitle>
         </CardHeader>
         <CardBody>
           {isLoading && <SkeletonTable rows={4} columns={3} />}
@@ -106,19 +133,19 @@ export function DriverGrievancesPage() {
                   <GrievanceStatusBadge status={g.status} />
                 </div>
                 <p className="text-sm text-slate-500">
-                  {g.category.replace('_', ' ')} &middot; {new Date(g.createdAt).toLocaleString()}
+                  {grievanceTypeLabel(t, g)} &middot; {formatDateTime(g.createdAt, locale)}
                 </p>
                 <p className="text-sm text-slate-600">{g.description}</p>
                 {g.resolutionNote && (
                   <p className="mt-1 rounded-md bg-slate-50 p-2 text-sm text-slate-700">
-                    <span className="font-medium">Response: </span>
+                    <span className="font-medium">{t('driverGrievances.response')} </span>
                     {g.resolutionNote}
                   </p>
                 )}
               </li>
             ))}
-            {grievances?.length === 0 && <p className="py-3 text-sm text-slate-500">No grievances raised yet.</p>}
           </ul>
+          {grievances?.length === 0 && <EmptyState title={t('driverGrievances.none')} />}
         </CardBody>
       </Card>
     </div>

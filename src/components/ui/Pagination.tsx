@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/cn';
 
@@ -25,23 +26,28 @@ function pageWindow(current: number, total: number): number[] {
 }
 
 export function Pagination({ page, totalPages, onPageChange, totalElements, pageSize, className }: PaginationProps) {
+  const { t } = useTranslation();
   if (totalPages <= 1) return null;
   const current = page + 1;
 
   const rangeLabel =
     totalElements != null && pageSize != null
-      ? `Showing ${page * pageSize + 1}–${Math.min(totalElements, (page + 1) * pageSize)} of ${totalElements}`
+      ? t('pagination.showing', {
+          from: page * pageSize + 1,
+          to: Math.min(totalElements, (page + 1) * pageSize),
+          total: totalElements,
+        })
       : null;
 
   return (
     <div className={cn('flex flex-col items-center justify-between gap-3 sm:flex-row', className)}>
       {rangeLabel && <p className="text-sm text-slate-500">{rangeLabel}</p>}
-      <nav className="flex items-center gap-1" aria-label="Pagination">
+      <nav className="flex items-center gap-1" aria-label={t('pagination.label')}>
         <button
           onClick={() => onPageChange(page - 1)}
           disabled={page === 0}
-          aria-label="Previous page"
-          className="flex h-8 w-8 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+          aria-label={t('pagination.previous')}
+          className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
         >
           <ChevronLeft className="h-4 w-4" />
         </button>
@@ -56,8 +62,8 @@ export function Pagination({ page, totalPages, onPageChange, totalElements, page
               onClick={() => onPageChange(p - 1)}
               aria-current={p === current ? 'page' : undefined}
               className={cn(
-                'flex h-8 w-8 items-center justify-center rounded-md text-sm font-medium',
-                p === current ? 'bg-brand-600 text-white' : 'text-slate-600 hover:bg-slate-100',
+                'flex h-9 w-9 items-center justify-center rounded-lg text-sm font-semibold transition-colors',
+                p === current ? 'bg-primary text-on-primary shadow-sm' : 'text-slate-600 hover:bg-slate-100',
               )}
             >
               {p}
@@ -67,8 +73,8 @@ export function Pagination({ page, totalPages, onPageChange, totalElements, page
         <button
           onClick={() => onPageChange(page + 1)}
           disabled={current >= totalPages}
-          aria-label="Next page"
-          className="flex h-8 w-8 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+          aria-label={t('pagination.next')}
+          className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
         >
           <ChevronRight className="h-4 w-4" />
         </button>

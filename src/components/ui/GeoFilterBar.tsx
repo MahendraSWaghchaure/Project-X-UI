@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { listCountries, listDistricts, listRegions, listStates, searchDistricts } from '@/lib/api/geo';
 import { Select } from '@/components/ui/Select';
@@ -20,7 +21,9 @@ interface GeoFilterBarProps {
   districtLabel?: string;
 }
 
-export function GeoFilterBar({ value, onChange, districtLabel = 'District' }: GeoFilterBarProps) {
+export function GeoFilterBar({ value, onChange, districtLabel }: GeoFilterBarProps) {
+  const { t } = useTranslation();
+  const levelLabel = districtLabel ?? t('geo.district');
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
@@ -50,7 +53,7 @@ export function GeoFilterBar({ value, onChange, districtLabel = 'District' }: Ge
       const results = await searchDistricts(query);
       const match = results[0];
       if (!match) {
-        toast.error(`No ${districtLabel.toLowerCase()} matching "${query}"`);
+        toast.error(t('geo.noMatch', { label: levelLabel.toLowerCase(), query }));
         return;
       }
       onChange({
@@ -62,7 +65,7 @@ export function GeoFilterBar({ value, onChange, districtLabel = 'District' }: Ge
       setSearchOpen(false);
       setSearchQuery('');
     } catch {
-      toast.error('Search failed');
+      toast.error(t('geo.searchFailed'));
     } finally {
       setIsSearching(false);
     }
@@ -73,14 +76,14 @@ export function GeoFilterBar({ value, onChange, districtLabel = 'District' }: Ge
   return (
     <div className="flex flex-wrap items-end gap-3 rounded-md border border-slate-200 bg-slate-50/60 p-3">
       <Select
-        label="Country"
+        label={t('geo.country')}
         value={value.countryId ?? ''}
         onChange={(e) => {
           const countryId = e.target.value ? Number(e.target.value) : undefined;
           onChange({ countryId });
         }}
       >
-        <option value="">All countries</option>
+        <option value="">{t('geo.allCountries')}</option>
         {countries?.map((c) => (
           <option key={c.id} value={c.id}>
             {c.name}
@@ -89,7 +92,7 @@ export function GeoFilterBar({ value, onChange, districtLabel = 'District' }: Ge
       </Select>
 
       <Select
-        label="State"
+        label={t('geo.state')}
         value={value.stateId ?? ''}
         disabled={!value.countryId}
         onChange={(e) => {
@@ -97,7 +100,7 @@ export function GeoFilterBar({ value, onChange, districtLabel = 'District' }: Ge
           onChange({ ...value, stateId, regionId: undefined, districtId: undefined });
         }}
       >
-        <option value="">All states</option>
+        <option value="">{t('geo.allStates')}</option>
         {states?.map((s) => (
           <option key={s.id} value={s.id}>
             {s.name}
@@ -106,7 +109,7 @@ export function GeoFilterBar({ value, onChange, districtLabel = 'District' }: Ge
       </Select>
 
       <Select
-        label="Region"
+        label={t('geo.region')}
         value={value.regionId ?? ''}
         disabled={!value.stateId}
         onChange={(e) => {
@@ -114,7 +117,7 @@ export function GeoFilterBar({ value, onChange, districtLabel = 'District' }: Ge
           onChange({ ...value, regionId, districtId: undefined });
         }}
       >
-        <option value="">All regions</option>
+        <option value="">{t('geo.allRegions')}</option>
         {regions?.map((r) => (
           <option key={r.id} value={r.id}>
             {r.name}
@@ -124,14 +127,14 @@ export function GeoFilterBar({ value, onChange, districtLabel = 'District' }: Ge
 
       <div className="flex flex-col gap-1">
         <div className="flex items-center justify-between gap-3">
-          <span className="text-sm font-medium text-slate-700">{districtLabel}</span>
+          <span className="text-sm font-medium text-slate-700">{levelLabel}</span>
           {!searchOpen && (
             <button
               type="button"
               onClick={() => setSearchOpen(true)}
               className="text-xs font-medium text-blue-600 hover:underline"
             >
-              Search instead
+              {t('geo.searchInstead')}
             </button>
           )}
         </div>
@@ -139,7 +142,7 @@ export function GeoFilterBar({ value, onChange, districtLabel = 'District' }: Ge
           <div className="flex gap-2">
             <Input
               autoFocus
-              placeholder={`e.g. Pune`}
+              placeholder={t('geo.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => {
@@ -150,7 +153,7 @@ export function GeoFilterBar({ value, onChange, districtLabel = 'District' }: Ge
               }}
             />
             <Button type="button" isLoading={isSearching} onClick={handleSearch}>
-              Search
+              {t('common.search')}
             </Button>
             <Button
               type="button"
@@ -160,7 +163,7 @@ export function GeoFilterBar({ value, onChange, districtLabel = 'District' }: Ge
                 setSearchQuery('');
               }}
             >
-              Cancel
+              {t('common.cancel')}
             </Button>
           </div>
         ) : (
@@ -172,7 +175,7 @@ export function GeoFilterBar({ value, onChange, districtLabel = 'District' }: Ge
               onChange({ ...value, districtId });
             }}
           >
-            <option value="">{`All ${districtLabel.toLowerCase()}s`}</option>
+            <option value="">{districtLabel ? t('geo.allCustom', { label: districtLabel.toLowerCase() }) : t('geo.allDistricts')}</option>
             {districts?.map((d) => (
               <option key={d.id} value={d.id}>
                 {d.name}
@@ -184,7 +187,7 @@ export function GeoFilterBar({ value, onChange, districtLabel = 'District' }: Ge
 
       {hasSelection && (
         <Button type="button" variant="secondary" onClick={() => onChange({})}>
-          Clear filters
+          {t('geo.clearFilters')}
         </Button>
       )}
     </div>

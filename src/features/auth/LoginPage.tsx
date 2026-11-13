@@ -13,14 +13,15 @@ import { Logo } from '@/components/ui/Logo';
 import type { Role } from '@/types/auth';
 
 const schema = z.object({
-  email: z.string().email('Enter a valid email'),
-  password: z.string().min(1, 'Password is required'),
+  email: z.string().email('auth.emailInvalid'),
+  password: z.string().min(1, 'auth.passwordRequired'),
 });
 type FormValues = z.infer<typeof schema>;
 
 const HOME_BY_ROLE: Record<Role, string> = {
   PLATFORM_ADMIN: '/platform-admin/dashboard',
   SCHOOL_ADMIN: '/school-admin/dashboard',
+  TEACHER: '/teacher/dashboard',
   DRIVER: '/driver/dashboard',
   PARENT: '/parent/dashboard',
 };
@@ -32,6 +33,7 @@ export function LoginPage() {
   const passwordWasReset = Boolean((location.state as { passwordReset?: boolean } | null)?.passwordReset);
   const setSession = useAuthStore((state) => state.setSession);
   const [serverError, setServerError] = useState<string | null>(null);
+  const err = (m?: string) => (m ? t(m) : undefined);
   const {
     register,
     handleSubmit,
@@ -45,52 +47,51 @@ export function LoginPage() {
       setSession(tokens);
       navigate(HOME_BY_ROLE[tokens.role]);
     } catch {
-      setServerError('Invalid email or password');
+      setServerError(t('auth.invalidCredentials'));
     }
   }
 
   return (
     <div className="flex min-h-screen">
       {/* Brand panel - hidden below lg, so the form is never squeezed on a phone. */}
-      <div className="relative hidden overflow-hidden bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 px-14 py-14 lg:flex lg:w-[46%] lg:flex-col lg:justify-between">
+      <div className="relative hidden overflow-hidden bg-brand-panel px-14 py-14 lg:flex lg:w-[46%] lg:flex-col lg:justify-between">
         <svg viewBox="0 0 520 900" className="pointer-events-none absolute inset-0 h-full w-full opacity-50" preserveAspectRatio="xMidYMid slice">
           <path
             d="M -40 780 C 120 760, 140 620, 260 560 C 380 500, 360 360, 240 300 C 140 250, 160 140, 300 90"
             fill="none"
-            stroke="#496089"
+            stroke="currentColor" className="text-white/40"
             strokeWidth="2"
             strokeDasharray="2 14"
             strokeLinecap="round"
           />
-          <circle cx="-40" cy="780" r="6" fill="#7C8CAB" />
-          <circle cx="300" cy="90" r="7" fill="#E2A23B" />
+          <circle cx="-40" cy="780" r="6" fill="currentColor" className="text-white/60" />
+          <circle cx="300" cy="90" r="7" className="fill-accent" />
         </svg>
 
-        <Logo size="md" tone="light" />
+        <Logo size="md" tone="onBrand" />
 
         <div className="relative max-w-sm">
           <h1 className="text-3xl font-semibold leading-tight text-white sm:text-4xl">
-            Real-time safety
+            {t('auth.brandHeadline1')}
             <br />
-            for the school run.
+            {t('auth.brandHeadline2')}
           </h1>
-          <p className="mt-4 text-[15px] leading-relaxed text-blue-100">
-            Every vehicle verified, every ride tracked, every parent informed &mdash; from first pickup to the last
-            drop-home.
+          <p className="mt-4 text-[15px] leading-relaxed text-white/85">
+            {t('auth.brandSubtitle')}
           </p>
           <div className="mt-9 flex gap-7">
             <div>
-              <div className="font-display text-xl font-semibold text-white">2,400+</div>
-              <div className="mt-0.5 text-xs text-blue-200">children tracked daily</div>
+              <div className="font-display text-xl font-semibold text-white">{t('auth.statChildrenValue')}</div>
+              <div className="mt-0.5 text-xs text-white/75">{t('auth.statChildren')}</div>
             </div>
             <div>
-              <div className="font-display text-xl font-semibold text-white">100%</div>
-              <div className="mt-0.5 text-xs text-blue-200">drivers police-verified</div>
+              <div className="font-display text-xl font-semibold text-white">{t('auth.statDriversValue')}</div>
+              <div className="mt-0.5 text-xs text-white/75">{t('auth.statDrivers')}</div>
             </div>
           </div>
         </div>
 
-        <p className="relative text-xs text-blue-300">&copy; {new Date().getFullYear()} Sunju School Transport</p>
+        <p className="relative text-xs text-white/65">{t('auth.copyright', { year: new Date().getFullYear() })}</p>
       </div>
 
       {/* Form panel */}
@@ -109,14 +110,16 @@ export function LoginPage() {
                 label={t('login.email')}
                 type="email"
                 autoComplete="email"
-                error={errors.email?.message}
+                required
+                error={err(errors.email?.message)}
                 {...register('email')}
               />
               <Input
                 label={t('login.password')}
                 type="password"
                 autoComplete="current-password"
-                error={errors.password?.message}
+                required
+                error={err(errors.password?.message)}
                 {...register('password')}
               />
               {serverError && <p className="text-sm text-red-600">{serverError}</p>}

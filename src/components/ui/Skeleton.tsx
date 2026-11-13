@@ -2,7 +2,7 @@ import type { HTMLAttributes } from 'react';
 import { cn } from '@/lib/cn';
 
 export function Skeleton({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn('animate-pulse rounded-md bg-slate-200', className)} {...props} />;
+  return <div className={cn('skeleton rounded-md bg-slate-200', className)} {...props} />;
 }
 
 /** A block of skeleton text lines, e.g. to stand in for a paragraph or a list of labels while loading. */
@@ -25,6 +25,20 @@ export function SkeletonTable({ rows = 5, columns = 4 }: { rows?: number; column
           {Array.from({ length: columns }).map((_, c) => (
             <Skeleton key={c} className={cn('h-4 flex-1', c === 0 && 'max-w-40')} />
           ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Stand-in for a stack of list cards (e.g. the driver child checklist or arrival rows) while loading. */
+export function SkeletonCards({ count = 3, className }: { count?: number; className?: string }) {
+  return (
+    <div className={cn('flex flex-col gap-3', className)} aria-hidden="true">
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-surface p-4 shadow-card">
+          <Skeleton className="h-5 w-1/2" />
+          <Skeleton className="h-8 w-full" />
         </div>
       ))}
     </div>

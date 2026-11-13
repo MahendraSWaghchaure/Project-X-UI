@@ -1,0 +1,231 @@
+/** English strings: public area. Merged into `translation` in src/lib/i18n.ts. */
+export const enPublic = {
+  publicNav: {
+    home: 'Home',
+    about: 'About',
+    vision: 'Vision',
+    benefits: 'Benefits',
+    registerDriver: 'Register as a driver',
+    signIn: 'Sign in',
+  },
+  pub: {
+    ctaTitle: 'Ready to make your school’s transport accountable?',
+    footer: {
+      tagline: 'Making privately-run school transport accountable, one tracked trip at a time.',
+      company: 'Company',
+      getStarted: 'Get started',
+      contact: 'Contact',
+      credits:
+        'Photos courtesy of <plato>Plato Terentev</plato> and <sandeep>Sandeep Singh</sandeep> via Pexels; “School bus, Indore” by Bernard Gagnon (<indore>CC BY-SA 3.0</indore>) and “School bus kerala” by Pulari Studio Padapparamba (<kerala>CC BY-SA 4.0</kerala>) via Wikimedia Commons.',
+      rights: '© {{year}} Sunju School Bus Service. All rights reserved.',
+    },
+  },
+  auth: {
+    emailInvalid: 'Enter a valid email',
+    passwordRequired: 'Password is required',
+    invalidCredentials: 'Invalid email or password',
+    brandHeadline1: 'Real-time safety',
+    brandHeadline2: 'for the school run.',
+    brandSubtitle:
+      'Every vehicle verified, every ride tracked, every parent informed — from first pickup to the last drop-home.',
+    statChildrenValue: '2,400+',
+    statChildren: 'children tracked daily',
+    statDriversValue: '100%',
+    statDrivers: 'drivers police-verified',
+    copyright: '© {{year}} Sunju School Transport',
+    newPassword: 'New password',
+    confirmPassword: 'Confirm password',
+    passwordAtLeast8: 'At least 8 characters',
+    passwordsMismatch: 'Passwords do not match',
+    backToSignIn: 'Back to sign in',
+    accept: {
+      title: 'Welcome to Sunju',
+      subtitle: 'Choose a password to activate your account.',
+      submit: 'Activate account',
+      invalid: 'This invite link is invalid or has expired',
+    },
+    forgot: {
+      title: 'Reset your password',
+      subtitle: 'Enter the email on your account and we’ll send a link to reset your password.',
+      sent: 'If that email is registered, a reset link is on its way. It’s valid for 1 hour.',
+      submit: 'Send reset link',
+      error: 'Something went wrong - try again',
+    },
+    reset: {
+      title: 'Choose a new password',
+      submit: 'Reset password',
+      invalid: 'This reset link is invalid or has expired - request a new one',
+      requestNew: 'Request a new link',
+    },
+  },
+  home: {
+    heroTitle: 'Privately-run school transport,',
+    heroTitleAccent: 'finally accountable',
+    heroBody:
+      'Sunju brings live GPS tracking, arrival alerts, insurance coverage, and verified drivers to school vans and buses across India — so every parent knows where their child is, in real time.',
+    signIn: 'Sign in',
+    registerDriver: 'Register as a driver',
+    chips: {
+      gps: 'Live GPS tracking',
+      verified: 'Verified drivers',
+      insurance: 'Insurance covered',
+      alerts: 'Instant alerts',
+    },
+    mockRoute: 'Route 12 · MH-14-LL-2747',
+    mockEta: 'Arriving in 4 min',
+    mockConfirmed: 'Aarav confirmed home safely',
+    mockTime: '3:45 PM · by parent',
+    fleetLabel: 'Our fleet, across India',
+    fleetTitle: 'Real buses, real safety signage — every city we run in',
+    fleet: {
+      talegaon: {
+        alt: 'A fleet of yellow school buses with STOP-arm signage in Talegaon Dabhade, Maharashtra',
+        caption: 'Talegaon, Maharashtra',
+      },
+      indore: {
+        alt: 'A school bus with the school name and phone number printed on the side, Indore',
+        caption: 'Indore, Madhya Pradesh',
+      },
+      kerala: {
+        alt: 'A government school bus with a STOP sign on the door, Kerala',
+        caption: 'Kerala',
+      },
+    },
+    learnMore: 'Learn more',
+    exploreTitle: 'Everything behind the tracking map',
+    readMore: 'Read more →',
+    explore: {
+      about: {
+        label: 'About Sunju',
+        title: 'The problem we’re solving',
+        body: '50–60% of Indian parents put their kids on transport with zero accountability. Here’s the everyday problem Sunju replaces.',
+      },
+      vision: {
+        label: 'Our vision',
+        title: 'Where we’re headed',
+        body: 'Every school van and bus in India, trackable and insured by default — not just the fleets large operators already run well.',
+      },
+      benefits: {
+        label: 'Benefits',
+        title: 'What’s in it for you',
+        body: 'Parents, children, schools, and drivers each get something different out of Sunju. See what it means for your role.',
+      },
+    },
+  },
+  about: {
+    heading: 'About Sunju',
+    title: 'Built for a real, everyday problem',
+    p1: '50–60% of Indian parents put their children on privately-run school vans and buses that carry almost no accountability — no live location, no verified driver record, no insurance transparency, and no way to know if today’s drop-off is running late.',
+    p2: 'Sunju replaces that blind spot with a single connected system for parents, schools, drivers, and the vehicles themselves. A school admin onboards their own fleet and staff; parents get a live view of every trip their child takes; drivers get fair, transparent pay; and every vehicle, driver, and child on the platform carries real insurance coverage.',
+    photoAlt: 'Schoolgirls in uniform walking near Hampi, India',
+    stats: {
+      tracking: { title: 'Live tracking', desc: 'Every vehicle, every trip' },
+      insurance: { title: 'Insurance', desc: 'Child, driver & vehicle' },
+      drivers: { title: 'Verified drivers', desc: 'Onboarded and accountable' },
+      alerts: { title: 'Instant alerts', desc: 'Arrival & delay notifications' },
+    },
+    howTitle: 'How Sunju fits together',
+    steps: {
+      s1: {
+        title: 'The platform onboards a school',
+        body: 'A new school gets its own admin login, which manages that school’s vehicles, drivers, and routes independently from every other school.',
+      },
+      s2: {
+        title: 'Parents and drivers join',
+        body: 'School admins invite parents (who then register their own children) and hire drivers, including independent drivers who bring their own vehicle.',
+      },
+      s3: {
+        title: 'Every trip is tracked and paid for, transparently',
+        body: 'Live GPS, boarding/drop-off logs, grievances, fee collection, and driver payroll all run through one system, not a phone call and a WhatsApp group.',
+      },
+    },
+  },
+  vision: {
+    heading: 'Our vision',
+    title: 'A country where no parent has to wonder if their child’s ride home is safe',
+    body: 'We want every school van and bus in India — not just fleets owned by large operators — to be trackable, insured, and accountable by default, and every driver behind the wheel to be treated fairly.',
+    pillars: {
+      trackable: {
+        title: 'Trackable by default',
+        body: 'Not an add-on feature you have to ask for - every vehicle on the platform is live-tracked from day one, the same way a food delivery rider is.',
+      },
+      insured: {
+        title: 'Insured by default',
+        body: 'Children, drivers, and vehicles all carry real insurance coverage, tracked alongside everything else instead of living in a filing cabinet.',
+      },
+      accountable: {
+        title: 'Accountable to everyone in the trip',
+        body: 'Parents, schools, and drivers all see the same facts - who boarded, when, and whether the drop-off ran on time - not three different stories.',
+      },
+      open: {
+        title: 'Open to every operator, not just large fleets',
+        body: 'An independent driver with their own single vehicle can register directly and get matched to a school, the same as a large fleet operator can.',
+      },
+    },
+  },
+  benefits: {
+    heading: 'Benefits',
+    title: 'Something for everyone in the trip',
+    subtitle: 'Four very different people rely on the same trip going well every day. Here’s what Sunju does for each of them.',
+    parents: {
+      role: 'Parents',
+      title: 'Know exactly where your child is',
+      p1: 'Live GPS location of the van/bus, just like tracking a food delivery',
+      p2: 'Alerts when the vehicle is approaching your stop, and when it arrives',
+      p3: 'You confirm your child reached home safely - the record is yours',
+      p4: 'Delay alerts if pickup or drop-off is running late',
+    },
+    children: {
+      role: 'Children',
+      title: 'Safer trips, every day',
+      p1: 'Every child is covered by insurance for the ride',
+      p2: 'Boarding and drop-off are logged by the driver in real time',
+      p3: 'Only verified, background-checked drivers are assigned routes',
+      p4: 'A clear digital record exists for every trip taken',
+    },
+    schools: {
+      role: 'Schools',
+      title: 'Oversight without the overhead',
+      p1: 'One dashboard for every vehicle, driver, and route serving your students',
+      p2: 'Automatic delay escalation if a drop-off runs past dismissal time',
+      p3: 'Enrollment and attendance data stays organized and auditable',
+      p4: 'Onboard your own admin team and manage everything independently',
+    },
+    drivers: {
+      role: 'Drivers',
+      title: 'Fair pay, real support',
+      p1: 'Monthly salary plus incentives for covering another route in a pinch',
+      p2: 'Vehicle and personal insurance coverage included',
+      p3: 'A clear, simple app for today’s route - no guesswork',
+      p4: 'Independent drivers can register directly and get matched to routes',
+    },
+  },
+  notFound: {
+    title: 'Page not found',
+    goHome: 'Go home',
+  },
+  unauthorized: {
+    title: 'Unauthorized',
+    body: 'Your account doesn’t have access to this page.',
+    back: 'Back to sign in',
+  },
+  driverRegister: {
+    doneTitle: 'You’re registered',
+    doneBody:
+      'Your driver and vehicle details are saved. A school can now find and hire you on Sunju — once they do, you’ll be able to sign in and see your assigned route.',
+    goToSignIn: 'Go to sign in',
+    title: 'Register as an independent driver',
+    subtitle:
+      'Run your own van or bus? Register here with your details and your vehicle’s details. Schools on Sunju can then find and hire you — we hand your verified profile straight to them.',
+    licenseNumber: 'License number',
+    licenseExpiry: 'License expiry',
+    yourVehicle: 'Your vehicle',
+    registrationNumber: 'Registration number',
+    type: 'Type',
+    seatCapacity: 'Seat capacity',
+    regAlnum: 'Letters and digits only, no spaces or symbols',
+    seatMin: 'Must be at least 1',
+    error: 'Could not register. Check your details and try again.',
+    submit: 'Register',
+  },
+};

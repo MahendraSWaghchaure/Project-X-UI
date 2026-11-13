@@ -1,4 +1,4 @@
-export type Role = 'PLATFORM_ADMIN' | 'SCHOOL_ADMIN' | 'DRIVER' | 'PARENT';
+export type Role = 'PLATFORM_ADMIN' | 'SCHOOL_ADMIN' | 'TEACHER' | 'DRIVER' | 'PARENT';
 
 export interface TokenResponse {
   accessToken: string;

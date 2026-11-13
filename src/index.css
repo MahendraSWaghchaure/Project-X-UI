@@ -1,190 +1,635 @@
 @import "tailwindcss";
 @import "leaflet/dist/leaflet.css";
-/* Spectral/Public Sans are loaded via a <link> in index.html (a CSS @import here would land after Tailwind's own generated rules once bundled, which is invalid - @import must precede all other rules). */
+/* Fonts are loaded via <link> in index.html (a CSS @import here would land after Tailwind's own rules once bundled, which is invalid). */
 
 /*
- * "Trust Editorial" brand direction - deep navy + warm cream paper + amber accent, Spectral serif
- * headlines over Public Sans body. Approved from the design canvas mockup (login/track-bus/
- * admin-dashboard screens) before this rollout.
+ * "Day / Night" brand system (supersedes "Trust Editorial").
  *
- * Rather than hand-editing ~350 hardcoded `slate-*`/`blue-*`/etc. utility classes across 36 feature
- * pages, this repoints Tailwind's OWN built-in color scales (see the "Legacy palette overrides"
- * block below) - every existing `bg-slate-50`, `text-blue-600`, `bg-red-600` etc. picks up the new
- * palette automatically, application-wide, with no per-page changes. New/future code should prefer
- * the semantic names (brand/success/warning/danger) instead of blue/green/amber/red directly - both
- * resolve to the same values today, but the semantic names are what a future palette swap targets.
+ *   NIGHT  bg #030407 - Electric Cobalt primary (PLACEHOLDER, one token: --color-cobalt) - Acid Lime accent
+ *   DAY    bg Baby Blue #B7D8F5 - Harbor Blue primary (#1D4ED8, replaces the original Signal Red - see
+ *          PLAN-phase3-polish-geo-timetable.md section G "Contract deviations") - Sunshine Yellow accent
+ *
+ * `<html data-theme="day|night">` is set before first paint by the inline script in index.html and kept in
+ * sync by ThemeProvider (src/lib/theme). Auto mode flips at 06:00 / 18:00 local time; the user can pin it.
+ *
+ * HOW THE WHOLE APP IS RE-SKINNED WITHOUT TOUCHING PAGES: Tailwind 4's own colour scales
+ * (slate / blue / red / green / amber) are redefined below. @theme holds the DAY values and
+ * `:root[data-theme="night"]` re-declares the same variables, so every existing `bg-slate-50`,
+ * `text-blue-600`, `border-slate-200` ... flips with the theme. New code should prefer the semantic
+ * tokens (bg-surface, text-ink, text-ink-muted, border-line, bg-primary, text-primary-text, ...).
+ *
+ * Scale roles (kept identical in both themes so a class means the same thing everywhere):
+ *   50-200  soft tint backgrounds / borders (light in day, deep tints in night)
+ *   300-500 mid tones (icons, rings, connectors)
+ *   600     SOLID fill that always carries white text
+ *   700-900 readable TEXT steps (dark in day, light in night)
+ * `bg-*-700` is therefore NOT a "darker fill" in night - use hover:brightness or the semantic hover tokens.
  */
+
+@custom-variant dark (&:where([data-theme="night"], [data-theme="night"] *));
+
 @theme {
-  --color-brand-50: #eef1f7;
-  --color-brand-100: #dce3ef;
-  --color-brand-200: #bfcbe0;
-  --color-brand-300: #94a8cc;
-  --color-brand-400: #6c84af;
-  --color-brand-500: #445f8c;
-  --color-brand-600: #16233f;
-  --color-brand-700: #101a30;
-  --color-brand-800: #0b1322;
-  --color-brand-900: #070d17;
-  --color-brand-950: #04080e;
+  /* ---- Brand source colours: change the placeholder cobalt here (one line) ---- */
+  --color-cobalt: #1558c9;
+  --color-lime: #d4ff24;
+  /* Day-mode primary. Was Signal Red #e10600 (clashed with the app's own alert/danger status colour
+     and felt alarming for a school-safety product) - replaced with Harbor Blue, see section G. */
+  --color-harbor: #1d4ed8;
+  --color-sunshine: #ffd700;
+  --color-night-bg: #030407;
+  --color-day-bg: #b7d8f5;
 
-  --color-accent-50: #fdf8ee;
-  --color-accent-100: #f6e6c9;
-  --color-accent-200: #edd39d;
-  --color-accent-300: #e6bd6e;
-  --color-accent-400: #e2a23b;
-  --color-accent-500: #cb8a2c;
-  --color-accent-600: #b4791f;
-  --color-accent-700: #96631a;
-
-  --color-success-50: #eff7f2;
-  --color-success-100: #dceee3;
-  --color-success-200: #b9ddc8;
-  --color-success-300: #8fc7a9;
-  --color-success-400: #64ac88;
-  --color-success-500: #4b9c74;
-  --color-success-600: #3f8f6c;
-  --color-success-700: #327259;
-  --color-success-800: #275846;
-  --color-success-900: #1d4234;
-
-  --color-warning-50: #fdf8ee;
-  --color-warning-100: #f6e6c9;
-  --color-warning-200: #edd39d;
-  --color-warning-300: #e6bd6e;
-  --color-warning-400: #e2a23b;
-  --color-warning-500: #cb8a2c;
-  --color-warning-600: #b4791f;
-  --color-warning-700: #96631a;
-  --color-warning-800: #7a5015;
-  --color-warning-900: #5c3d10;
-
-  --color-danger-50: #fbf0ed;
-  --color-danger-100: #f7e4df;
-  --color-danger-200: #efc7bb;
-  --color-danger-300: #e2a48f;
-  --color-danger-400: #d17d62;
-  --color-danger-500: #c85a3c;
-  --color-danger-600: #c1432d;
-  --color-danger-700: #9c4735;
-  --color-danger-800: #7a3527;
-  --color-danger-900: #5c281e;
-
-  --radius-card: 0.75rem;
-  --font-display: "Spectral", ui-serif, Georgia, serif;
-  --font-sans: "Public Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-
-  /* Legacy palette overrides - see the note above. Same values as brand/success/warning/danger above. */
-  --color-slate-50: #f8f5ef;
-  --color-slate-100: #f1ece0;
-  --color-slate-200: #e7e0d0;
-  --color-slate-300: #d6ccb5;
-  --color-slate-400: #aea284;
-  --color-slate-500: #8a8267;
-  --color-slate-600: #6b6250;
-  --color-slate-700: #4a4437;
-  --color-slate-800: #2c2a24;
-  --color-slate-900: #1c2130;
-  --color-slate-950: #10131c;
-
-  --color-blue-50: #eef1f7;
-  --color-blue-100: #dce3ef;
-  --color-blue-200: #bfcbe0;
-  --color-blue-300: #94a8cc;
-  --color-blue-400: #6c84af;
-  --color-blue-500: #445f8c;
-  --color-blue-600: #16233f;
-  --color-blue-700: #101a30;
-  --color-blue-800: #0b1322;
-  --color-blue-900: #070d17;
-  --color-blue-950: #04080e;
-
-  --color-red-50: #fbf0ed;
-  --color-red-100: #f7e4df;
-  --color-red-200: #efc7bb;
-  --color-red-300: #e2a48f;
-  --color-red-400: #d17d62;
-  --color-red-500: #c85a3c;
-  --color-red-600: #c1432d;
-  --color-red-700: #9c4735;
-  --color-red-800: #7a3527;
-  --color-red-900: #5c281e;
-
-  --color-green-50: #eff7f2;
-  --color-green-100: #dceee3;
-  --color-green-200: #b9ddc8;
-  --color-green-300: #8fc7a9;
-  --color-green-400: #64ac88;
-  --color-green-500: #4b9c74;
-  --color-green-600: #3f8f6c;
-  --color-green-700: #327259;
-  --color-green-800: #275846;
-  --color-green-900: #1d4234;
-
-  --color-amber-50: #fdf8ee;
-  --color-amber-100: #f6e6c9;
-  --color-amber-200: #edd39d;
-  --color-amber-300: #e6bd6e;
-  --color-amber-400: #e2a23b;
-  --color-amber-500: #cb8a2c;
-  --color-amber-600: #b4791f;
-  --color-amber-700: #96631a;
-  --color-amber-800: #7a5015;
-  --color-amber-900: #5c3d10;
-}
-
-:root {
-  --color-brand: #16233f;
-  --color-brand-dark: #101a30;
-  --color-bg: #f7f3ec;
+  /* ---- Semantic tokens (DAY values; night overrides below) ---- */
+  --color-page: #b7d8f5;
   --color-surface: #ffffff;
-  --color-border: #e9e3d6;
-  --color-text: #1c2130;
-  --color-text-muted: #8a8267;
-  --color-danger: #c1432d;
-  --color-warning: #b4791f;
-  --color-success: #3f8f6c;
+  --color-surface-2: #f1f7fd;
+  --color-surface-3: #e3eefa;
+  --color-line: #a9c8e6;
+  --color-line-strong: #6e93b6;
+  --color-ink: #0b1b33;
+  --color-ink-muted: #3b5473;
+  --color-primary: var(--color-harbor);
+  --color-primary-hover: #1e40af;
+  --color-primary-soft: #e3edfd;
+  --color-primary-text: #1e40af;
+  --color-on-primary: #ffffff;
+  --color-accent: #ffd700;
+  --color-accent-hover: #f2c800;
+  --color-on-accent: #0b1b33;
+  --color-accent-text: #7a5a00;
+  --color-focus: #0b1b33;
+  --color-scrim: rgb(11 27 51 / 0.55);
+  --color-nav-bg: #0b1b33;
+  --color-nav-ink: #e7f0fa;
+  --color-nav-muted: #9fb7d1;
+  --color-nav-hover: rgb(255 255 255 / 0.08);
+  --color-nav-line: rgb(255 255 255 / 0.1);
+
+  --shadow-card: 0 1px 2px rgb(11 27 51 / 0.08), 0 8px 24px -12px rgb(11 27 51 / 0.25);
+  --shadow-pop: 0 24px 60px -16px rgb(11 27 51 / 0.45), 0 4px 12px rgb(11 27 51 / 0.12);
+  --shadow-glow: 0 0 0 1px rgb(29 78 216 / 0.25), 0 10px 30px -10px rgb(29 78 216 / 0.55);
+
+  /* ---- Neutral scale (cool, blue-tinted) ---- */
+  --color-slate-50: #eef5fc;
+  --color-slate-100: #e1edf9;
+  --color-slate-200: #bcd5ec;
+  --color-slate-300: #7298ba;
+  --color-slate-400: #435e7c;
+  --color-slate-500: #3a5472;
+  --color-slate-600: #2f4967;
+  --color-slate-700: #243f5e;
+  --color-slate-800: #152d4d;
+  --color-slate-900: #0b1b33;
+  --color-slate-950: #050e1d;
+
+  /* ---- Primary scale (aliased as `blue` for legacy pages and `brand`). Harbor Blue - see section G. ---- */
+  --color-blue-50: #eff4fe;
+  --color-blue-100: #dce7fc;
+  --color-blue-200: #b9cffa;
+  --color-blue-300: #8fadf3;
+  --color-blue-400: #5e85ea;
+  --color-blue-500: #3a66e0;
+  --color-blue-600: #1d4ed8;
+  --color-blue-700: #1e40af;
+  --color-blue-800: #1e3a8a;
+  --color-blue-900: #172b66;
+  --color-blue-950: #101b40;
+
+  --color-brand-50: var(--color-blue-50);
+  --color-brand-100: var(--color-blue-100);
+  --color-brand-200: var(--color-blue-200);
+  --color-brand-300: var(--color-blue-300);
+  --color-brand-400: var(--color-blue-400);
+  --color-brand-500: var(--color-blue-500);
+  --color-brand-600: var(--color-blue-600);
+  --color-brand-700: var(--color-blue-700);
+  --color-brand-800: var(--color-blue-800);
+  --color-brand-900: var(--color-blue-900);
+  --color-brand-950: var(--color-blue-950);
+
+  /* ---- Accent scale: sunshine (day) / lime (night). 400 is the fill, always with dark text ---- */
+  --color-accent-50: #fffbe0;
+  --color-accent-100: #fff4b0;
+  --color-accent-200: #ffea70;
+  --color-accent-300: #ffe033;
+  --color-accent-400: #ffd700;
+  --color-accent-500: #f2c800;
+  --color-accent-600: #8f6b00;
+  --color-accent-700: #6b5000;
+
+  /* ---- Danger (red) ---- */
+  --color-red-50: #fdecef;
+  --color-red-100: #fad7dd;
+  --color-red-200: #f3aeba;
+  --color-red-300: #e77a8e;
+  --color-red-400: #d64862;
+  --color-red-500: #c22344;
+  --color-red-600: #a50e26;
+  --color-red-700: #86091e;
+  --color-red-800: #680617;
+  --color-red-900: #4a040f;
+
+  --color-danger-50: var(--color-red-50);
+  --color-danger-100: var(--color-red-100);
+  --color-danger-200: var(--color-red-200);
+  --color-danger-300: var(--color-red-300);
+  --color-danger-400: var(--color-red-400);
+  --color-danger-500: var(--color-red-500);
+  --color-danger-600: var(--color-red-600);
+  --color-danger-700: var(--color-red-700);
+  --color-danger-800: var(--color-red-800);
+  --color-danger-900: var(--color-red-900);
+
+  /* ---- Success (green) ---- */
+  --color-green-50: #e6f6ee;
+  --color-green-100: #d0eedf;
+  --color-green-200: #a6ddc0;
+  --color-green-300: #6fc59b;
+  --color-green-400: #44b07f;
+  --color-green-500: #2e9e6c;
+  --color-green-600: #0f7a4a;
+  --color-green-700: #0c5f3b;
+  --color-green-800: #094a2e;
+  --color-green-900: #063420;
+
+  --color-success-50: var(--color-green-50);
+  --color-success-100: var(--color-green-100);
+  --color-success-200: var(--color-green-200);
+  --color-success-300: var(--color-green-300);
+  --color-success-400: var(--color-green-400);
+  --color-success-500: var(--color-green-500);
+  --color-success-600: var(--color-green-600);
+  --color-success-700: var(--color-green-700);
+  --color-success-800: var(--color-green-800);
+  --color-success-900: var(--color-green-900);
+
+  /* ---- Warning (amber) ---- */
+  --color-amber-50: #fff7dc;
+  --color-amber-100: #ffedaa;
+  --color-amber-200: #ffdc66;
+  --color-amber-300: #f5c42a;
+  --color-amber-400: #e0a800;
+  --color-amber-500: #c48a00;
+  --color-amber-600: #9a6700;
+  --color-amber-700: #744d00;
+  --color-amber-800: #5c3d00;
+  --color-amber-900: #402a00;
+
+  --color-warning-50: var(--color-amber-50);
+  --color-warning-100: var(--color-amber-100);
+  --color-warning-200: var(--color-amber-200);
+  --color-warning-300: var(--color-amber-300);
+  --color-warning-400: var(--color-amber-400);
+  --color-warning-500: var(--color-amber-500);
+  --color-warning-600: var(--color-amber-600);
+  --color-warning-700: var(--color-amber-700);
+  --color-warning-800: var(--color-amber-800);
+  --color-warning-900: var(--color-amber-900);
+
+  /* ---- Info (ink blue; distinct from the primary so "in progress" never reads as "error") ---- */
+  --color-info-50: #e8f1fc;
+  --color-info-100: #d3e5f9;
+  --color-info-200: #a9cbf0;
+  --color-info-300: #6fa3df;
+  --color-info-500: #2f74c8;
+  --color-info-600: #1d5cad;
+  --color-info-700: #164a8e;
+
+  /*
+   * STATUS tokens for safe-arrival / attendance: safe (green) - pending (amber) - alert (crimson).
+   * The three words a parent, driver and teacher learn to read at a glance. Always paired with an
+   * icon + label (StatusChip), never colour alone. 700-on-100 pairs are >= 4.5:1 in both themes.
+   */
+  --color-safe-50: #e6f6ee;
+  --color-safe-100: #d0eedf;
+  --color-safe-200: #a6ddc0;
+  --color-safe-300: #6fc59b;
+  --color-safe-500: #2e9e6c;
+  --color-safe-600: #0f7a4a;
+  --color-safe-700: #0c5f3b;
+
+  --color-pending-50: #fff7dc;
+  --color-pending-100: #ffedaa;
+  --color-pending-200: #ffdc66;
+  --color-pending-300: #f5c42a;
+  --color-pending-500: #c48a00;
+  --color-pending-600: #9a6700;
+  --color-pending-700: #6e4a00;
+
+  --color-alert-50: #fdecef;
+  --color-alert-100: #fad7dd;
+  --color-alert-200: #f3aeba;
+  --color-alert-300: #e77a8e;
+  --color-alert-500: #c22344;
+  --color-alert-600: #a50e26;
+  --color-alert-700: #7e0a1d;
+
+  /* ---- Shape + type ---- */
+  --radius-card: 1rem;
+  --font-display: "Bricolage Grotesque", "Plus Jakarta Sans", "Noto Sans Devanagari", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Plus Jakarta Sans", "Noto Sans Devanagari", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  /* ---- Motion ---- */
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --animate-fade-up: fade-up 0.45s var(--ease-out-soft) both;
+  --animate-fade-in: fade-in 0.25s ease-out both;
+  --animate-pop-in: pop-in 0.22s var(--ease-out-soft) both;
+  --animate-slide-in-right: slide-in-right 0.3s var(--ease-out-soft) both;
+  --animate-slide-in-left: slide-in-left 0.28s var(--ease-out-soft) both;
+  --animate-shimmer: shimmer 1.6s ease-in-out infinite;
+  --animate-float: float 6s ease-in-out infinite;
+
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes pop-in {
+    from { opacity: 0; transform: translateY(8px) scale(0.97); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes slide-in-right {
+    from { opacity: 0; transform: translateX(32px); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes slide-in-left {
+    from { opacity: 0; transform: translateX(-32px); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
 }
 
+/* =====================================================================================
+   NIGHT theme: re-declares the same variables. Unlayered, so it beats @theme's layer.
+   Mixes are done in sRGB so scripts/contrast-check.mjs can reproduce them exactly.
+   ===================================================================================== */
+:root[data-theme="night"] {
+  --color-page: var(--color-night-bg);
+  --color-surface: #0a0e19;
+  --color-surface-2: #0f1525;
+  --color-surface-3: #161e34;
+  --color-line: #1d2842;
+  --color-line-strong: #566a94;
+  --color-ink: #edf2fb;
+  --color-ink-muted: #9aa8c4;
+  --color-primary: var(--color-cobalt);
+  --color-primary-hover: color-mix(in srgb, var(--color-cobalt) 86%, white);
+  --color-primary-soft: color-mix(in srgb, var(--color-cobalt) 18%, #0a0e19);
+  --color-primary-text: color-mix(in srgb, var(--color-cobalt) 52%, white);
+  --color-on-primary: #ffffff;
+  --color-accent: var(--color-lime);
+  --color-accent-hover: color-mix(in srgb, var(--color-lime) 82%, white);
+  --color-on-accent: #030407;
+  --color-accent-text: var(--color-lime);
+  --color-focus: color-mix(in srgb, var(--color-cobalt) 45%, white);
+  --color-scrim: rgb(1 2 6 / 0.72);
+  --color-nav-bg: #05070e;
+  --color-nav-ink: #e6ecf8;
+  --color-nav-muted: #8d9bb8;
+  --color-nav-hover: rgb(255 255 255 / 0.06);
+  --color-nav-line: rgb(255 255 255 / 0.07);
+
+  --shadow-card: 0 0 0 1px rgb(255 255 255 / 0.03), 0 12px 32px -16px rgb(21 88 201 / 0.4);
+  --shadow-pop: 0 28px 70px -18px rgb(0 0 0 / 0.9), 0 0 0 1px rgb(255 255 255 / 0.07), 0 0 60px -20px rgb(21 88 201 / 0.5);
+  --shadow-glow: 0 0 0 1px rgb(21 88 201 / 0.5), 0 0 28px -4px rgb(21 88 201 / 0.55);
+
+  --color-slate-50: #0d1322;
+  --color-slate-100: #141b2e;
+  --color-slate-200: #1f2a45;
+  --color-slate-300: #5a6d98;
+  --color-slate-400: #8493b0;
+  --color-slate-500: #9aa8c4;
+  --color-slate-600: #b3bfd6;
+  --color-slate-700: #ccd5e8;
+  --color-slate-800: #e2e8f5;
+  --color-slate-900: #f1f5fc;
+  --color-slate-950: #ffffff;
+
+  --color-blue-50: color-mix(in srgb, var(--color-cobalt) 9%, #0a0e19);
+  --color-blue-100: color-mix(in srgb, var(--color-cobalt) 17%, #0a0e19);
+  --color-blue-200: color-mix(in srgb, var(--color-cobalt) 30%, #0a0e19);
+  --color-blue-300: color-mix(in srgb, var(--color-cobalt) 55%, #0a0e19);
+  --color-blue-400: color-mix(in srgb, var(--color-cobalt) 78%, white);
+  --color-blue-500: color-mix(in srgb, var(--color-cobalt) 90%, white);
+  --color-blue-600: var(--color-cobalt);
+  --color-blue-700: color-mix(in srgb, var(--color-cobalt) 50%, white);
+  --color-blue-800: color-mix(in srgb, var(--color-cobalt) 35%, white);
+  --color-blue-900: color-mix(in srgb, var(--color-cobalt) 22%, white);
+  --color-blue-950: color-mix(in srgb, var(--color-cobalt) 12%, white);
+
+  --color-accent-50: color-mix(in srgb, var(--color-lime) 7%, #0a0e19);
+  --color-accent-100: color-mix(in srgb, var(--color-lime) 14%, #0a0e19);
+  --color-accent-200: color-mix(in srgb, var(--color-lime) 26%, #0a0e19);
+  --color-accent-300: color-mix(in srgb, var(--color-lime) 60%, #0a0e19);
+  --color-accent-400: var(--color-lime);
+  --color-accent-500: color-mix(in srgb, var(--color-lime) 82%, white);
+  --color-accent-600: var(--color-lime);
+  --color-accent-700: color-mix(in srgb, var(--color-lime) 70%, white);
+
+  --color-red-50: #1a0a0e;
+  --color-red-100: #2b0f17;
+  --color-red-200: #4a1624;
+  --color-red-300: #7c2536;
+  --color-red-400: #d9475a;
+  --color-red-500: #ee6377;
+  --color-red-600: #c72c45;
+  --color-red-700: #ff93a2;
+  --color-red-800: #ffb4be;
+  --color-red-900: #ffd6dc;
+
+  --color-green-50: #07160f;
+  --color-green-100: #0c2619;
+  --color-green-200: #134128;
+  --color-green-300: #1d6a44;
+  --color-green-400: #2fa974;
+  --color-green-500: #3cc88c;
+  --color-green-600: #11805a;
+  --color-green-700: #6fe3b0;
+  --color-green-800: #9aedc8;
+  --color-green-900: #c4f6df;
+
+  --color-amber-50: #181204;
+  --color-amber-100: #2a2008;
+  --color-amber-200: #483808;
+  --color-amber-300: #7a5f0e;
+  --color-amber-400: #d9a514;
+  --color-amber-500: #f2b705;
+  --color-amber-600: #9a6700;
+  --color-amber-700: #ffd35c;
+  --color-amber-800: #ffe08a;
+  --color-amber-900: #ffedb8;
+
+  --color-info-50: #0a1423;
+  --color-info-100: #0e2040;
+  --color-info-200: #14315f;
+  --color-info-300: #1f4f94;
+  --color-info-500: #5b9bf0;
+  --color-info-600: #2b6fd1;
+  --color-info-700: #9cc4fa;
+
+  --color-safe-50: #07160f;
+  --color-safe-100: #0c2619;
+  --color-safe-200: #134128;
+  --color-safe-300: #1d6a44;
+  --color-safe-500: #3cc88c;
+  --color-safe-600: #11805a;
+  --color-safe-700: #6fe3b0;
+
+  --color-pending-50: #181204;
+  --color-pending-100: #2a2008;
+  --color-pending-200: #483808;
+  --color-pending-300: #7a5f0e;
+  --color-pending-500: #f2b705;
+  --color-pending-600: #9a6700;
+  --color-pending-700: #ffd35c;
+
+  --color-alert-50: #1a0a0e;
+  --color-alert-100: #2b0f17;
+  --color-alert-200: #4a1624;
+  --color-alert-300: #7c2536;
+  --color-alert-500: #ee6377;
+  --color-alert-600: #c72c45;
+  --color-alert-700: #ff93a2;
+}
+
+html {
+  color-scheme: light;
+  -webkit-text-size-adjust: 100%;
+}
+html[data-theme="night"] {
+  color-scheme: dark;
+}
+
+/* =====================================================================================
+   Global base
+   ===================================================================================== */
 body {
-  background-color: var(--color-bg);
-  color: var(--color-text);
+  min-height: 100vh;
+  background-color: var(--color-page);
+  background-image:
+    radial-gradient(1100px 520px at 12% -8%, rgb(255 255 255 / 0.55), transparent 60%),
+    radial-gradient(900px 600px at 105% 105%, rgb(21 88 201 / 0.14), transparent 60%);
+  background-attachment: fixed;
+  color: var(--color-ink);
   font-family: var(--font-sans);
+  line-height: 1.55;
+  font-feature-settings: "cv11", "ss01";
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+html[data-theme="night"] body {
+  background-image:
+    radial-gradient(900px 480px at 10% -10%, color-mix(in srgb, var(--color-cobalt) 26%, transparent), transparent 62%),
+    radial-gradient(700px 420px at 100% 100%, rgb(212 255 36 / 0.045), transparent 60%);
 }
 
-/* Every page defines its own <h1> inline rather than through a shared component, so the display
-   serif is applied here once instead of touching every page - the rest of the type scale (card
-   titles, body text) stays on the sans body face, matching the approved mockup's hierarchy. */
-h1 {
+h1,
+h2,
+.font-display {
   font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+h1 {
+  font-weight: 700;
+  line-height: 1.12;
+}
+/* Big numbers on stat cards / page titles use the display face and tabular figures. */
+.text-3xl.font-bold,
+.text-4xl.font-bold,
+.text-5xl.font-bold,
+.text-2xl.font-bold {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+::selection {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+/* Visible keyboard focus everywhere. In the base layer so utilities like `outline-none` (modal panel) still win. */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+  button:not(:disabled),
+  [role="button"],
+  summary {
+    cursor: pointer;
+  }
+}
+
+/* =====================================================================================
+   Legacy-class remaps: the few places where one Tailwind class name cannot serve both themes
+   ===================================================================================== */
+.bg-white {
+  background-color: var(--color-surface);
+}
+.bg-white\/95 {
+  background-color: color-mix(in srgb, var(--color-surface) 95%, transparent);
+}
+.bg-white\/90 {
+  background-color: color-mix(in srgb, var(--color-surface) 90%, transparent);
+}
+.bg-white\/60 {
+  background-color: color-mix(in srgb, var(--color-surface) 60%, transparent);
+}
+/* text-blue-600/500 are used as "link / emphasis text"; the solid 600 fill is too weak as text on dark and on baby blue. */
+.text-blue-600,
+.hover\:text-blue-600:hover,
+.text-brand-600 {
+  color: var(--color-primary-text);
+}
+/* Solid hover fills must stay solid (700 is a TEXT step in night). */
+.hover\:bg-blue-700:hover,
+.hover\:bg-brand-700:hover {
+  background-color: var(--color-primary-hover);
+}
+.hover\:bg-red-700:hover {
+  background-color: color-mix(in srgb, var(--color-red-600) 86%, black);
+}
+.hover\:bg-green-700:hover {
+  background-color: color-mix(in srgb, var(--color-green-600) 86%, black);
+}
+
+/* Brand panel (login side panel, closing CTA band): a fixed-dark gradient in both themes. */
+.bg-brand-panel {
+  color: #fff;
+  background:
+    radial-gradient(520px 320px at 85% 8%, rgb(255 255 255 / 0.14), transparent 65%),
+    linear-gradient(150deg, var(--color-primary) 0%, color-mix(in srgb, var(--color-primary) 62%, black) 100%);
+}
+html[data-theme="night"] .bg-brand-panel {
+  background:
+    radial-gradient(520px 320px at 85% 8%, rgb(212 255 36 / 0.1), transparent 65%),
+    radial-gradient(700px 500px at 0% 100%, color-mix(in srgb, var(--color-cobalt) 60%, transparent), transparent 70%),
+    linear-gradient(160deg, #070b16 0%, #030407 100%);
+}
+
+/* Subtle dotted route texture reused by hero / panels. */
+.bg-grid {
+  background-image:
+    linear-gradient(to right, rgb(11 27 51 / 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(11 27 51 / 0.06) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(ellipse at 30% 30%, #000 20%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse at 30% 30%, #000 20%, transparent 75%);
+}
+html[data-theme="night"] .bg-grid {
+  background-image:
+    linear-gradient(to right, rgb(255 255 255 / 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(255 255 255 / 0.05) 1px, transparent 1px);
+}
+
+.bg-dots {
+  background-image: radial-gradient(currentColor 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+.glass {
+  background: color-mix(in srgb, var(--color-surface) 78%, transparent);
+  backdrop-filter: blur(14px) saturate(1.4);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+}
+
+/* Skeleton shimmer: neutral-200 -> neutral-100 sweep, theme-aware through the slate scale. */
+.skeleton {
+  background-image: linear-gradient(
+    90deg,
+    var(--color-slate-200) 25%,
+    var(--color-slate-100) 37%,
+    var(--color-slate-200) 63%
+  );
+  background-size: 400% 100%;
+  animation: var(--animate-shimmer);
+}
+
+/* Hairline scrollbars that follow the theme. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line-strong) transparent;
+}
+
+/* Native form controls (checkbox / radio / range) take the primary colour. */
+input[type="checkbox"],
+input[type="radio"],
+input[type="range"] {
+  accent-color: var(--color-primary);
+}
+input[type="date"],
+input[type="time"] {
+  color-scheme: inherit;
 }
 
 /* Leaflet's default marker icon lookup breaks under bundlers - see src/lib/leafletIcons.ts for the fix this class supports. */
 .leaflet-container {
   width: 100%;
   height: 100%;
+  font-family: var(--font-sans);
+}
+html[data-theme="night"] .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(195deg) brightness(0.82) contrast(0.92) saturate(0.7);
 }
 
 /* Home page fleet photo strip - src/features/public/HomePage.tsx. The track renders the photo
    list twice back to back and scrolls exactly one list-width, so the loop point is seamless. */
 @keyframes marquee {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-50%);
-  }
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
 }
-
 .animate-marquee {
   animation: marquee 32s linear infinite;
 }
-
 .animate-marquee:hover {
   animation-play-state: paused;
 }
 
+/* Smooth cross-fade only when the user explicitly flips the theme (ThemeProvider toggles the attribute for ~400ms). */
+@media (prefers-reduced-motion: no-preference) {
+  html[data-theme-transition] *,
+  html[data-theme-transition] *::before,
+  html[data-theme-transition] *::after {
+    transition:
+      background-color 0.35s ease,
+      color 0.35s ease,
+      border-color 0.35s ease,
+      box-shadow 0.35s ease !important;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
   .animate-marquee {
     animation: none;
   }
+}
+
+/* Night: the 600 steps are SOLID fills (white text on them); as plain text on dark they are too dim, so text uses the light 700 step. */
+html[data-theme="night"] .text-red-600 {
+  color: var(--color-red-700);
+}
+html[data-theme="night"] .text-green-600 {
+  color: var(--color-green-700);
+}
+html[data-theme="night"] .text-amber-600 {
+  color: var(--color-amber-700);
 }

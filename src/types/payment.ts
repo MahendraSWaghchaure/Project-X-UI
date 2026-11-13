@@ -82,4 +82,7 @@ export interface PayrollRecord {
   transactionReference: string | null;
   disbursedAt: string | null;
   failureReason: string | null;
+  /** Bank/gateway reference of the payout. */
+  transactionId?: string | null;
+  payoutAmount?: number | null;
 }

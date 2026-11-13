@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -11,16 +12,18 @@ import { LocationPicker } from '@/components/ui/LocationPicker';
 import { phoneSchema } from '@/lib/validation';
 
 const schema = z.object({
-  firstName: z.string().min(1),
-  lastName: z.string().min(1),
+  firstName: z.string().min(1, 'validation.required'),
+  lastName: z.string().min(1, 'validation.required'),
   phone: phoneSchema,
-  address: z.string().min(1),
+  address: z.string().min(1, 'validation.required'),
   latitude: z.number().optional(),
   longitude: z.number().optional(),
 });
 type FormValues = z.infer<typeof schema>;
 
 export function CompleteProfilePage() {
+  const { t } = useTranslation();
+  const err = (m?: string) => (m ? t(m) : undefined);
   const navigate = useNavigate();
   const {
     register,
@@ -42,19 +45,19 @@ export function CompleteProfilePage() {
     <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Tell us a bit about you</CardTitle>
+          <CardTitle>{t('parentProfile.tellUs')}</CardTitle>
           <p className="mt-1 text-sm text-slate-500">
-            Your home location is used to alert you when the bus is nearly there at drop-off.
+            {t('parentProfile.hint')}
           </p>
         </CardHeader>
         <CardBody>
           <form onSubmit={handleSubmit((values) => mutation.mutate(values))} className="flex flex-col gap-4">
-            <Input label="First name" error={errors.firstName?.message} {...register('firstName')} />
-            <Input label="Last name" error={errors.lastName?.message} {...register('lastName')} />
-            <Input label="Phone" error={errors.phone?.message} {...register('phone')} />
-            <Input label="Address" error={errors.address?.message} {...register('address')} />
+            <Input label={t('common.firstName')} required error={err(errors.firstName?.message)} {...register('firstName')} />
+            <Input label={t('common.lastName')} required error={err(errors.lastName?.message)} {...register('lastName')} />
+            <Input label={t('common.phone')} required error={err(errors.phone?.message)} {...register('phone')} />
+            <Input label={t('common.address')} required error={err(errors.address?.message)} {...register('address')} />
             <LocationPicker
-              label="Home location"
+              label={t('parentProfile.homeLocation')}
               latitude={latitude}
               longitude={longitude}
               onChange={(point) => {
@@ -63,9 +66,9 @@ export function CompleteProfilePage() {
               }}
               height={220}
             />
-            {mutation.isError && <p className="text-sm text-red-600">Could not save your profile.</p>}
+            {mutation.isError && <p className="text-sm text-red-600">{t('parentProfile.saveFailedInline')}</p>}
             <Button type="submit" isLoading={isSubmitting} className="w-full">
-              Continue
+              {t('parentProfile.continue')}
             </Button>
           </form>
         </CardBody>

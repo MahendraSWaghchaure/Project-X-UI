@@ -1,3 +1,5 @@
+import i18n from '@/lib/i18n';
+
 // Razorpay Standard Checkout ships as a CDN script, not an npm package - it renders its own modal
 // (with UPI/QR/card/netbanking/wallet tabs) outside React's tree, so this is a thin imperative
 // wrapper rather than a component. See PaymentController/PaymentService on the backend for the
@@ -38,7 +40,7 @@ function loadCheckoutScript(): Promise<void> {
     const script = document.createElement('script');
     script.src = 'https://checkout.razorpay.com/v1/checkout.js';
     script.onload = () => resolve();
-    script.onerror = () => reject(new Error('Could not load the Razorpay checkout script'));
+    script.onerror = () => reject(new Error(i18n.t('parentPay.scriptLoadFailed')));
     document.body.appendChild(script);
   });
   return scriptLoadPromise;
@@ -55,7 +57,7 @@ export async function openRazorpayCheckout(params: {
 }): Promise<RazorpaySuccessResponse> {
   await loadCheckoutScript();
   if (!window.Razorpay) {
-    throw new Error('Razorpay checkout did not load');
+    throw new Error(i18n.t('parentPay.checkoutNotLoaded'));
   }
 
   return new Promise((resolve, reject) => {
@@ -64,12 +66,12 @@ export async function openRazorpayCheckout(params: {
       amount: Math.round(params.amountInRupees * 100),
       currency: 'INR',
       order_id: params.orderId,
-      name: 'Sunju School Bus Service',
+      name: i18n.t('parentPay.merchantName'),
       description: params.description,
       prefill: { name: params.prefillName, email: params.prefillEmail, contact: params.prefillContact },
       theme: { color: '#2563eb' },
       handler: (response) => resolve(response),
-      modal: { ondismiss: () => reject(new Error('Payment window closed before completing')) },
+      modal: { ondismiss: () => reject(new Error(i18n.t('parentPay.windowClosed'))) },
     });
     razorpay.open();
   });

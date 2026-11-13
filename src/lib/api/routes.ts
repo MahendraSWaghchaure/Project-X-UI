@@ -8,6 +8,10 @@ export interface RouteStopRequest {
   latitude: number;
   longitude: number;
   radiusMeters?: number;
+  /** On update only: id of an existing stop to keep (children stay attached); absent = new stop. */
+  id?: number;
+  /** Planned arrival, "HH:mm" or "HH:mm:ss". */
+  scheduledTime?: string;
 }
 
 export interface CreateRouteRequest {
@@ -40,4 +44,13 @@ export function updateRouteZone(
   return apiClient
     .put<ApiResponse<Route>>(`/schools/${schoolId}/routes/${routeId}/zone`, { zoneMinRadiusMeters, zoneMaxRadiusMeters })
     .then(unwrap);
+}
+
+export interface UpdateRouteRequest extends CreateRouteRequest {
+  active?: boolean;
+}
+
+/** Full replace of the route's name, zone and ordered stop list. */
+export function updateRoute(schoolId: number, routeId: number, request: UpdateRouteRequest): Promise<Route> {
+  return apiClient.put<ApiResponse<Route>>(`/schools/${schoolId}/routes/${routeId}`, request).then(unwrap);
 }

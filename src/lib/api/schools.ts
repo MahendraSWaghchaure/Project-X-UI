@@ -1,6 +1,7 @@
 import { apiClient, unwrap } from '@/lib/apiClient';
 import type { ApiResponse } from '@/types/api';
-import type { School } from '@/types/school';
+import type { PageResponse } from '@/types/api';
+import type { School, SchoolOverview, SchoolStatus, SchoolStatusCounts } from '@/types/school';
 
 export interface CreateSchoolRequest {
   name: string;
@@ -53,6 +54,33 @@ export function updateSchool(schoolId: number, request: UpdateSchoolRequest): Pr
   return apiClient.patch<ApiResponse<School>>(`/schools/${schoolId}`, request).then(unwrap);
 }
 
-export function setSchoolStatus(schoolId: number, status: 'ACTIVE' | 'SUSPENDED'): Promise<School> {
-  return apiClient.patch<ApiResponse<School>>(`/schools/${schoolId}/status`, { status }).then(unwrap);
+/** `reason` is required by the server when suspending (shown on the schools list); ignored when re-activating. */
+export function setSchoolStatus(schoolId: number, status: SchoolStatus, reason?: string): Promise<School> {
+  return apiClient.patch<ApiResponse<School>>(`/schools/${schoolId}/status`, { status, reason }).then(unwrap);
+}
+
+export interface PlatformSchoolsParams {
+  status?: SchoolStatus;
+  q?: string;
+  districtIds?: number[];
+  page?: number;
+  size?: number;
+}
+
+/** Platform-admin schools list with the All | Active | Suspended tab filter applied server-side. */
+export function listPlatformSchools(params: PlatformSchoolsParams): Promise<PageResponse<School>> {
+  return apiClient
+    .get<ApiResponse<PageResponse<School>>>('/platform-admin/schools', {
+      params: { ...params, districtIds: params.districtIds?.length ? params.districtIds : undefined },
+    })
+    .then(unwrap);
+}
+
+export function getSchoolStatusCounts(): Promise<SchoolStatusCounts> {
+  return apiClient.get<ApiResponse<SchoolStatusCounts>>('/platform-admin/schools/status-counts').then(unwrap);
+}
+
+/** B1: everything the platform-admin school-detail page needs in one call. */
+export function getSchoolOverview(schoolId: number): Promise<SchoolOverview> {
+  return apiClient.get<ApiResponse<SchoolOverview>>(`/platform-admin/schools/${schoolId}/overview`).then(unwrap);
 }

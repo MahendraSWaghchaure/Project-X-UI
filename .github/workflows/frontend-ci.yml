@@ -1,0 +1,47 @@
+name: Frontend CI
+
+# This pipeline cannot run yet - nothing in this repo is committed/pushed to a remote. It's written
+# now so it's ready the moment that happens; it is not activated by writing this file.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+
+      # Plain `tsc --noEmit` checks zero files in this project (see memory
+      # feedback_frontend_typecheck_gotcha) - `-b` is required to actually typecheck anything.
+      - name: Typecheck
+        run: npx tsc -b
+
+      - name: Lint
+        run: npm run lint
+
+      # This machine's local runs have needed --maxWorkers=1 under memory pressure; GitHub's runners
+      # have more headroom, but the explicit worker count keeps CI behavior deterministic either way.
+      - name: Test
+        run: npx vitest run --maxWorkers=2
+
+      - name: Build
+        run: npm run build
+
+      - name: Publish build output
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: dist/
+          retention-days: 7
+
+  # A real deploy job belongs here once there's an actual target and hosting decision - same note as
+  # the backend pipeline: not stubbed out blind.

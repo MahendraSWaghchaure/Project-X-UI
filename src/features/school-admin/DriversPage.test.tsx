@@ -16,6 +16,10 @@ vi.mock('@/lib/api/drivers', () => ({
   listIndependentDrivers: vi.fn(),
 }));
 
+vi.mock('@/lib/api/routes', () => ({
+  listRoutes: vi.fn().mockResolvedValue([]),
+}));
+
 const activeDriver: Driver = {
   id: 1,
   schoolId: 4,

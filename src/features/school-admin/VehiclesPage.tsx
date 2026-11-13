@@ -1,110 +1,192 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useTranslation } from 'react-i18next';
+import { Bus, MapPin } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { createVehicle, listVehicles, retireVehicle, updateVehicle, type UpdateVehicleRequest } from '@/lib/api/vehicles';
+import {
+  assignVehicleDriver,
+  createVehicle,
+  listVehicles,
+  retireVehicle,
+  updateVehicle,
+  type CreateVehicleRequest,
+} from '@/lib/api/vehicles';
+import { listDrivers } from '@/lib/api/drivers';
 import { listRoutes } from '@/lib/api/routes';
 import { useAuthStore } from '@/lib/authStore';
 import { toast } from '@/lib/toastStore';
 import { backendErrorMessage } from '@/lib/errorMessage';
+import { optionalPhoneSchema } from '@/lib/validation';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card';
+import { Select } from '@/components/ui/Select';
 import { Badge } from '@/components/ui/Badge';
+import { DataTable, type DataColumn } from '@/components/ui/DataTable';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { Modal } from '@/components/ui/Modal';
+import { PageHeader } from '@/components/ui/PageHeader';
 import { RouteFilterSelect } from '@/components/ui/RouteFilterSelect';
 import type { Vehicle } from '@/types/school';
-import { SkeletonTable } from '@/components/ui/Skeleton';
+import { VehicleLiveMapModal } from './VehicleLiveMapModal';
 
 // Uppercase, letters and digits only - matches the backend's validation exactly (see
 // CreateVehicleRequest/UpdateVehicleRequest) so a rejected value fails fast client-side instead
 // of round-tripping to the server first.
 const registrationNumberField = z
   .string()
-  .min(1, 'Required')
+  .min(1, 'validation.required')
   .transform((v) => v.toUpperCase())
-  .refine((v) => /^[A-Z0-9]+$/.test(v), 'Letters and digits only, no spaces or symbols');
+  .refine((v) => /^[A-Z0-9]+$/.test(v), 'vehicles.regInvalid');
 
-const schema = z.object({
-  registrationNumber: registrationNumberField,
-  type: z.enum(['VAN', 'BUS']),
-  seatCapacity: z.coerce.number().int().min(1),
-  gpsDeviceId: z.string().optional(),
-});
-type FormValues = z.infer<typeof schema>;
+const schema = z
+  .object({
+    registrationNumber: registrationNumberField,
+    type: z.enum(['VAN', 'BUS']),
+    seatCapacity: z.coerce.number().int().min(1, 'validation.positive'),
+    gpsDeviceId: z.string().optional(),
+    ownershipType: z.enum(['SCHOOL', 'PRIVATE']),
+    ownerName: z.string().optional(),
+    ownerPhone: optionalPhoneSchema,
+    ownerAddress: z.string().optional(),
+    assignedDriverId: z.string().optional(),
+  })
+  .superRefine((v, ctx) => {
+    if (v.ownershipType === 'PRIVATE' && !v.ownerName?.trim()) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['ownerName'], message: 'validation.required' });
+    }
+  });
+type FormValues = z.input<typeof schema>;
+type FormOutput = z.output<typeof schema>;
 
-const editSchema = z.object({
-  registrationNumber: registrationNumberField,
-  type: z.enum(['VAN', 'BUS']),
-  seatCapacity: z.coerce.number().int().min(1),
-});
-type EditFormValues = z.infer<typeof editSchema>;
+function defaultsFor(v?: Vehicle): FormValues {
+  return {
+    registrationNumber: v?.registrationNumber ?? '',
+    type: v?.type ?? 'VAN',
+    seatCapacity: v?.seatCapacity ?? 20,
+    gpsDeviceId: v?.gpsDeviceId ?? '',
+    ownershipType: v?.ownershipType ?? 'SCHOOL',
+    ownerName: v?.ownerName ?? '',
+    ownerPhone: v?.ownerPhone ?? '',
+    ownerAddress: v?.ownerAddress ?? '',
+    assignedDriverId: v?.assignedDriverId != null ? String(v.assignedDriverId) : '',
+  };
+}
 
-function EditVehicleRow({ schoolId, vehicle, onDone }: { schoolId: number; vehicle: Vehicle; onDone: () => void }) {
+/** Add / edit form: vehicle details, owner details and driver allocation. */
+function VehicleFormModal({ open, onClose, schoolId, vehicle }: { open: boolean; onClose: () => void; schoolId: number; vehicle?: Vehicle }) {
+  const { t } = useTranslation();
+  const err = (m?: string) => (m ? t(m) : undefined);
   const queryClient = useQueryClient();
+  const editing = vehicle != null;
+  const { data: drivers } = useQuery({
+    queryKey: ['drivers', schoolId],
+    queryFn: () => listDrivers(schoolId),
+    enabled: open,
+  });
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
-  } = useForm<EditFormValues>({
-    resolver: zodResolver(editSchema),
-    defaultValues: { registrationNumber: vehicle.registrationNumber, type: vehicle.type, seatCapacity: vehicle.seatCapacity },
-  });
+    reset,
+    watch,
+    formState: { errors },
+  } = useForm<FormValues, unknown, FormOutput>({ resolver: zodResolver(schema), defaultValues: defaultsFor(vehicle) });
+  const ownership = watch('ownershipType');
 
-  const updateMutation = useMutation({
-    mutationFn: (values: UpdateVehicleRequest) => updateVehicle(schoolId, vehicle.id, values),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['vehicles', schoolId] });
-      toast.success('Vehicle updated');
-      onDone();
+  useEffect(() => {
+    if (open) reset(defaultsFor(vehicle));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, vehicle?.id]);
+
+  const mutation = useMutation({
+    mutationFn: async (v: FormOutput) => {
+      const driverId = v.assignedDriverId ? Number(v.assignedDriverId) : undefined;
+      const body: CreateVehicleRequest = {
+        registrationNumber: v.registrationNumber,
+        type: v.type,
+        seatCapacity: v.seatCapacity,
+        gpsDeviceId: v.gpsDeviceId?.trim() || undefined,
+        ownershipType: v.ownershipType,
+        ownerName: v.ownerName?.trim() || undefined,
+        ownerPhone: v.ownerPhone?.trim() || undefined,
+        ownerAddress: v.ownerAddress?.trim() || undefined,
+        assignedDriverId: driverId,
+      };
+      if (!editing) return createVehicle(schoolId, body);
+      const updated = await updateVehicle(schoolId, vehicle.id, body);
+      // updateVehicle leaves the allocation alone when no driver is sent, so an explicit "none" is a separate call.
+      if (driverId == null && vehicle.assignedDriverId != null) return assignVehicleDriver(schoolId, vehicle.id, null);
+      return updated;
     },
-    onError: (error) => toast.error(backendErrorMessage(error, 'Could not update vehicle')),
+    onSuccess: (saved) => {
+      void queryClient.invalidateQueries({ queryKey: ['vehicles', schoolId] });
+      void queryClient.invalidateQueries({ queryKey: ['drivers', schoolId] });
+      toast.success(editing ? t('vehicles.updated') : t('vehicles.added', { number: saved.registrationNumber }));
+      onClose();
+    },
+    onError: (error) => toast.error(backendErrorMessage(error, editing ? t('vehicles.updateFailed') : t('vehicles.addFailed'))),
   });
 
   return (
-    <form
-      onSubmit={handleSubmit((values) => updateMutation.mutate(values))}
-      className="grid grid-cols-1 gap-3 rounded-md border border-blue-200 bg-blue-50/40 p-3 sm:grid-cols-3"
-    >
-      <Input
-        id={`vehicle-registration-number-${vehicle.id}`}
-        label="Registration number"
-        error={errors.registrationNumber?.message}
-        {...register('registrationNumber')}
-      />
-      <div className="flex flex-col gap-1">
-        <label className="text-sm font-medium text-slate-700">Type</label>
-        <select className="rounded-md border border-slate-300 px-3 py-2 text-sm" {...register('type')}>
-          <option value="VAN">Van</option>
-          <option value="BUS">Bus</option>
-        </select>
-      </div>
-      <Input
-        id={`vehicle-seat-capacity-${vehicle.id}`}
-        label="Seat capacity"
-        type="number"
-        error={errors.seatCapacity?.message}
-        {...register('seatCapacity')}
-      />
-      <div className="flex gap-2 sm:col-span-3">
-        <Button type="submit" isLoading={isSubmitting}>
-          Save
-        </Button>
-        <Button type="button" variant="secondary" onClick={onDone}>
-          Cancel
-        </Button>
-      </div>
-    </form>
+    <Modal open={open} onClose={onClose} size="lg" title={editing ? t('vehicles.editTitle') : t('vehicles.addTitle')}>
+      <form onSubmit={handleSubmit((v) => mutation.mutate(v))} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Input label={t('vehicles.regNo')} required error={err(errors.registrationNumber?.message)} {...register('registrationNumber')} />
+        <Select label={t('vehicles.type')} required {...register('type')}>
+          <option value="VAN">{t('enums.vehicleType.VAN')}</option>
+          <option value="BUS">{t('enums.vehicleType.BUS')}</option>
+        </Select>
+        <Input label={t('vehicles.seats')} type="number" required error={err(errors.seatCapacity?.message)} {...register('seatCapacity')} />
+        <Input label={t('vehicles.gps')} {...register('gpsDeviceId')} />
+
+        <div className="border-t border-slate-100 pt-3 text-sm font-semibold text-slate-700 sm:col-span-2">{t('vehicles.ownerSection')}</div>
+        <Select label={t('vehicles.ownership')} required {...register('ownershipType')}>
+          <option value="SCHOOL">{t('enums.ownershipType.SCHOOL')}</option>
+          <option value="PRIVATE">{t('enums.ownershipType.PRIVATE')}</option>
+        </Select>
+        <Input
+          label={ownership === 'PRIVATE' ? t('vehicles.ownerNameRequired') : t('vehicles.ownerName')}
+          required={ownership === 'PRIVATE'}
+          error={err(errors.ownerName?.message)}
+          {...register('ownerName')}
+        />
+        <Input label={t('vehicles.ownerPhone')} error={err(errors.ownerPhone?.message)} {...register('ownerPhone')} />
+        <Input label={t('vehicles.ownerAddress')} {...register('ownerAddress')} />
+
+        <div className="border-t border-slate-100 pt-3 text-sm font-semibold text-slate-700 sm:col-span-2">{t('vehicles.driverSection')}</div>
+        <Select label={t('vehicles.assignedDriver')} className="sm:col-span-2" {...register('assignedDriverId')}>
+          <option value="">{t('vehicles.noDriver')}</option>
+          {drivers
+            ?.filter((d) => d.employmentStatus === 'ACTIVE' || d.id === vehicle?.assignedDriverId)
+            .map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.firstName} {d.lastName}
+                {d.vehicleRegistrationNumber && d.vehicleId !== vehicle?.id
+                  ? ` (${t('vehicles.driverOn', { number: d.vehicleRegistrationNumber })})`
+                  : ''}
+              </option>
+            ))}
+        </Select>
+
+        <div className="flex justify-end gap-2 sm:col-span-2">
+          <Button type="button" variant="secondary" onClick={onClose}>
+            {t('common.cancel')}
+          </Button>
+          <Button type="submit" isLoading={mutation.isPending}>
+            {editing ? t('common.saveChanges') : t('vehicles.add')}
+          </Button>
+        </div>
+      </form>
+    </Modal>
   );
 }
 
 export function VehiclesPage() {
+  const { t } = useTranslation();
   const schoolId = useAuthStore((state) => state.schoolId);
   const queryClient = useQueryClient();
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [showAddModal, setShowAddModal] = useState(false);
+  const [formVehicle, setFormVehicle] = useState<Vehicle | 'new' | null>(null);
+  const [tracking, setTracking] = useState<Vehicle | null>(null);
   const [routeFilter, setRouteFilter] = useState<number | undefined>(undefined);
   const { data: vehicles, isLoading } = useQuery({
     queryKey: ['vehicles', schoolId],
@@ -118,122 +200,95 @@ export function VehiclesPage() {
   });
   const routeVehicleId = routeFilter != null ? routes?.find((r) => r.id === routeFilter)?.vehicleId : undefined;
   const visibleVehicles = routeFilter == null ? vehicles : vehicles?.filter((v) => v.id === routeVehicleId);
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors, isSubmitting },
-  } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: { type: 'VAN' } });
-
-  const createMutation = useMutation({
-    mutationFn: (values: FormValues) => createVehicle(schoolId!, values),
-    onSuccess: (vehicle) => {
-      queryClient.invalidateQueries({ queryKey: ['vehicles', schoolId] });
-      reset();
-      setShowAddModal(false);
-      toast.success(`${vehicle.registrationNumber} added`);
-    },
-    onError: (error) => toast.error(backendErrorMessage(error, 'Could not add vehicle')),
-  });
 
   const retireMutation = useMutation({
     mutationFn: (vehicleId: number) => retireVehicle(schoolId!, vehicleId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['vehicles', schoolId] });
-      toast.success('Vehicle retired');
+      void queryClient.invalidateQueries({ queryKey: ['vehicles', schoolId] });
+      toast.success(t('vehicles.retired'));
     },
-    onError: (error) => toast.error(backendErrorMessage(error, 'Could not retire vehicle')),
+    onError: (error) => toast.error(backendErrorMessage(error, t('vehicles.retireFailed'))),
   });
+
+  const columns: DataColumn<Vehicle>[] = [
+    { key: 'regNo', header: t('vehicles.regNo'), primary: true, cell: (v) => <span className="font-semibold">{v.registrationNumber}</span> },
+    { key: 'driver', header: t('vehicles.driver'), cell: (v) => v.driverName ?? <span className="text-slate-500">{t('vehicles.unassigned')}</span> },
+    { key: 'students', header: t('vehicles.students'), cell: (v) => v.studentCount ?? 0, className: 'tabular-nums' },
+    { key: 'route', header: t('vehicles.route'), cell: (v) => v.routeName ?? '—' },
+    {
+      key: 'status',
+      header: t('common.status'),
+      cell: (v) => <Badge tone={v.status === 'ACTIVE' ? 'success' : 'warning'}>{t(`enums.vehicleStatus.${v.status}`, { defaultValue: v.status })}</Badge>,
+    },
+    {
+      key: 'actions',
+      header: <span className="sr-only">{t('common.actions')}</span>,
+      actions: true,
+      cell: (v) => (
+        <div className="flex flex-wrap justify-end gap-2">
+          <Button
+            size="sm"
+            variant="primary"
+            disabled={v.status === 'RETIRED'}
+            onClick={() => setTracking(v)}
+            aria-label={t('vehicles.trackOne', { number: v.registrationNumber })}
+          >
+            <MapPin className="h-3.5 w-3.5" aria-hidden="true" />
+            {t('vehicles.trackLive')}
+          </Button>
+          <Button size="sm" variant="secondary" onClick={() => setFormVehicle(v)}>
+            {t('common.edit')}
+          </Button>
+          {v.status !== 'RETIRED' && (
+            <Button
+              size="sm"
+              variant="danger"
+              isLoading={retireMutation.isPending && retireMutation.variables === v.id}
+              onClick={() => {
+                if (window.confirm(t('vehicles.retireConfirm', { number: v.registrationNumber }))) retireMutation.mutate(v.id);
+              }}
+            >
+              {t('vehicles.retire')}
+            </Button>
+          )}
+        </div>
+      ),
+    },
+  ];
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-900">Vehicles</h1>
-        <Button onClick={() => setShowAddModal(true)}>+ Add vehicle</Button>
-      </div>
+      <PageHeader
+        title={t('vehicles.title')}
+        actions={<Button onClick={() => setFormVehicle('new')}>{t('vehicles.addButton')}</Button>}
+      />
 
-      <Modal open={showAddModal} onClose={() => setShowAddModal(false)} title="Add a vehicle">
-        <form
-          onSubmit={handleSubmit((values) => createMutation.mutate(values))}
-          className="grid grid-cols-1 gap-4 sm:grid-cols-2"
-        >
-          <Input label="Registration number" error={errors.registrationNumber?.message} {...register('registrationNumber')} />
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-slate-700">Type</label>
-            <select className="rounded-md border border-slate-300 px-3 py-2 text-sm" {...register('type')}>
-              <option value="VAN">Van</option>
-              <option value="BUS">Bus</option>
-            </select>
-          </div>
-          <Input label="Seat capacity" type="number" error={errors.seatCapacity?.message} {...register('seatCapacity')} />
-          <Input label="GPS device id (Traccar uniqueId)" {...register('gpsDeviceId')} />
-          {createMutation.isError && (
-            <p className="sm:col-span-2 text-sm text-red-600">{backendErrorMessage(createMutation.error, 'Could not add vehicle.')}</p>
-          )}
-          <Button type="submit" isLoading={isSubmitting} className="sm:col-span-2 sm:w-fit">
-            Add vehicle
-          </Button>
-        </form>
-      </Modal>
+      {schoolId != null && (
+        <VehicleFormModal
+          open={formVehicle !== null}
+          onClose={() => setFormVehicle(null)}
+          schoolId={schoolId}
+          vehicle={formVehicle === 'new' ? undefined : (formVehicle ?? undefined)}
+        />
+      )}
+      {schoolId != null && <VehicleLiveMapModal schoolId={schoolId} vehicle={tracking} onClose={() => setTracking(null)} />}
 
       <RouteFilterSelect schoolId={schoolId!} value={routeFilter} onChange={setRouteFilter} />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Fleet</CardTitle>
-        </CardHeader>
-        <CardBody>
-          {isLoading && <SkeletonTable rows={4} columns={3} />}
-          <ul className="flex flex-col divide-y divide-slate-100">
-            {visibleVehicles?.map((vehicle) =>
-              editingId === vehicle.id ? (
-                <li key={vehicle.id} className="py-3">
-                  <EditVehicleRow schoolId={schoolId!} vehicle={vehicle} onDone={() => setEditingId(null)} />
-                </li>
-              ) : (
-                <li key={vehicle.id} className="flex items-center justify-between gap-4 py-3">
-                  <div>
-                    <p className="font-medium text-slate-900">{vehicle.registrationNumber}</p>
-                    <p className="text-sm text-slate-500">
-                      {vehicle.type} &middot; {vehicle.seatCapacity} seats
-                      {vehicle.gpsDeviceId ? ` · GPS ${vehicle.gpsDeviceId}` : ' · no GPS device linked'}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge tone={vehicle.status === 'ACTIVE' ? 'success' : 'warning'}>{vehicle.status}</Badge>
-                    {vehicle.insurancePolicyId ? (
-                      <Badge tone="info">Insured</Badge>
-                    ) : (
-                      <Link to="/school-admin/insurance">
-                        <Badge tone="neutral" className="cursor-pointer hover:bg-slate-200">
-                          Not insured
-                        </Badge>
-                      </Link>
-                    )}
-                    <Button variant="secondary" onClick={() => setEditingId(vehicle.id)}>
-                      Edit
-                    </Button>
-                    {vehicle.status !== 'RETIRED' && (
-                      <Button
-                        variant="danger"
-                        isLoading={retireMutation.isPending && retireMutation.variables === vehicle.id}
-                        onClick={() => retireMutation.mutate(vehicle.id)}
-                      >
-                        Retire
-                      </Button>
-                    )}
-                  </div>
-                </li>
-              ),
-            )}
-            {visibleVehicles?.length === 0 && (
-              <p className="py-3 text-sm text-slate-500">
-                {routeFilter != null ? 'No vehicle assigned to this route.' : 'No vehicles yet.'}
-              </p>
-            )}
-          </ul>
-        </CardBody>
-      </Card>
+      <DataTable
+        caption={t('vehicles.title')}
+        columns={columns}
+        rows={visibleVehicles}
+        isLoading={isLoading}
+        getRowKey={(v) => v.id}
+        empty={
+          <EmptyState
+            icon={Bus}
+            title={routeFilter != null ? t('vehicles.noneOnRoute') : t('vehicles.emptyTitle')}
+            description={routeFilter == null ? t('vehicles.emptyBody') : undefined}
+          />
+        }
+      />
     </div>
   );
 }

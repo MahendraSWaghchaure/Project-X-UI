@@ -9,6 +9,8 @@ export interface State {
   countryId: number;
   name: string;
   code: string | null;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 export interface Region {
@@ -20,8 +22,13 @@ export interface Region {
 export interface District {
   id: number;
   name: string;
+  /** The district's own representative coordinates (B3); falls back to the parent state's when null. */
+  latitude: number | null;
+  longitude: number | null;
   stateId: number;
   stateName: string;
+  stateLatitude: number | null;
+  stateLongitude: number | null;
   regionId: number | null;
   regionName: string | null;
   countryId: number;

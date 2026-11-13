@@ -1,93 +1,84 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
+import { enAttendance } from './locales/en.attendance';
+import { hiAttendance } from './locales/hi.attendance';
+import { enBase } from './locales/en.base';
+import { hiBase } from './locales/hi.base';
+import { enCommon } from './locales/en.common';
+import { hiCommon } from './locales/hi.common';
+import { enPublic } from './locales/en.public';
+import { hiPublic } from './locales/hi.public';
+import { enParent } from './locales/en.parent';
+import { hiParent } from './locales/hi.parent';
+import { enDriverApp } from './locales/en.driverApp';
+import { hiDriverApp } from './locales/hi.driverApp';
+import { enAdmin } from './locales/en.admin';
+import { hiAdmin } from './locales/hi.admin';
+import { enPlatform } from './locales/en.platform';
+import { hiPlatform } from './locales/hi.platform';
+import { enSchool } from './locales/en.school';
+import { hiSchool } from './locales/hi.school';
+import { enTeacher } from './locales/en.teacher';
+import { hiTeacher } from './locales/hi.teacher';
+import { enComponents } from './locales/en.components';
+import { hiComponents } from './locales/hi.components';
+import { enUi } from './locales/en.ui';
+import { hiUi } from './locales/hi.ui';
+
+type Tree = { [key: string]: string | Tree };
 
 /**
- * Scoped to the highest-traffic parent/driver screens (login, track-bus, notifications, SOS,
- * attendance) for this pass, not a full-app translation audit - see the plan doc for why.
+ * Deep-merges locale files. Each file owns its own top-level keys, so this only matters where two
+ * files legitimately extend the same branch (e.g. `nav`, `driver`). The Hindi files are typed
+ * against their English twin (see locales/types.ts), so a key missing from Hindi fails the build.
  */
-const resources = {
+function mergeTrees(...trees: object[]): Tree {
+  const out: Tree = {};
+  for (const tree of trees as Tree[]) {
+    for (const [key, value] of Object.entries(tree)) {
+      const existing = out[key];
+      out[key] =
+        typeof value === 'object' && value !== null && typeof existing === 'object' && existing !== null
+          ? mergeTrees(existing, value)
+          : value;
+    }
+  }
+  return out;
+}
+
+export const resources = {
   en: {
-    translation: {
-      login: {
-        title: 'Sign in',
-        email: 'Email',
-        password: 'Password',
-        submit: 'Sign in',
-        forgotPassword: 'Forgot password?',
-        passwordResetSuccess: 'Password reset - sign in with your new password.',
-      },
-      trackBus: {
-        title: 'Track Bus',
-        status: 'Status',
-        liveConnection: 'Live connection',
-        connected: 'connected',
-        connecting: 'connecting…',
-        noPosition: "No live position yet for this child's bus.",
-        confirmHomeArrival: 'Confirm my child reached home safely',
-        confirmSuccess: 'Thanks, marked as confirmed.',
-        confirmError: 'Could not confirm right now — there may be no drop-off trip today yet.',
-        yourDriver: 'Your driver today',
-        verified: 'Background verified',
-        rejected: 'Verification failed',
-        pending: 'Verification pending',
-        callDriver: 'Call driver',
-        sosBanner: 'SOS alert triggered on this bus. The school has been notified.',
-      },
-      notifications: {
-        title: 'Notifications',
-      },
-      attendance: {
-        title: 'Attendance history',
-        last30Days: 'Last 30 days',
-        markAbsent: 'Mark absent',
-        notRiding: 'Not riding that day',
-        clear: 'Clear',
-        boardingQr: 'Boarding QR code',
-        inviteGuardian: 'Invite a guardian',
-      },
-    },
+    translation: mergeTrees(
+      enCommon,
+      enBase,
+      enAttendance,
+      enPublic,
+      enParent,
+      enDriverApp,
+      enAdmin,
+      enPlatform,
+      enSchool,
+      enTeacher,
+      enComponents,
+      enUi,
+    ),
   },
   hi: {
-    translation: {
-      login: {
-        title: 'साइन इन करें',
-        email: 'ईमेल',
-        password: 'पासवर्ड',
-        submit: 'साइन इन करें',
-        forgotPassword: 'पासवर्ड भूल गए?',
-        passwordResetSuccess: 'पासवर्ड रीसेट हो गया - अपने नए पासवर्ड से साइन इन करें।',
-      },
-      trackBus: {
-        title: 'बस ट्रैक करें',
-        status: 'स्थिति',
-        liveConnection: 'लाइव कनेक्शन',
-        connected: 'जुड़ा हुआ',
-        connecting: 'जुड़ रहा है…',
-        noPosition: 'इस बच्चे की बस की अभी कोई लाइव स्थिति नहीं है।',
-        confirmHomeArrival: 'पुष्टि करें कि मेरा बच्चा सुरक्षित घर पहुंच गया',
-        confirmSuccess: 'धन्यवाद, पुष्टि दर्ज कर दी गई।',
-        confirmError: 'अभी पुष्टि नहीं हो सकी — शायद आज कोई ड्रॉप-ऑफ ट्रिप नहीं है।',
-        yourDriver: 'आज आपका ड्राइवर',
-        verified: 'पृष्ठभूमि सत्यापित',
-        rejected: 'सत्यापन विफल',
-        pending: 'सत्यापन लंबित',
-        callDriver: 'ड्राइवर को कॉल करें',
-        sosBanner: 'इस बस पर एसओएस अलर्ट भेजा गया। स्कूल को सूचित कर दिया गया है।',
-      },
-      notifications: {
-        title: 'सूचनाएं',
-      },
-      attendance: {
-        title: 'उपस्थिति इतिहास',
-        last30Days: 'पिछले 30 दिन',
-        markAbsent: 'अनुपस्थित चिह्नित करें',
-        notRiding: 'उस दिन यात्रा नहीं करेगा',
-        clear: 'साफ़ करें',
-        boardingQr: 'बोर्डिंग क्यूआर कोड',
-        inviteGuardian: 'अभिभावक को आमंत्रित करें',
-      },
-    },
+    translation: mergeTrees(
+      hiCommon,
+      hiBase,
+      hiAttendance,
+      hiPublic,
+      hiParent,
+      hiDriverApp,
+      hiAdmin,
+      hiPlatform,
+      hiSchool,
+      hiTeacher,
+      hiComponents,
+      hiUi,
+    ),
   },
 };
 

@@ -1,0 +1,43 @@
+/** English strings: shared UI chrome (theme switch, logo, footer contact, inquiry modal). Merged into `translation` in src/lib/i18n.ts. */
+export const enUi = {
+  ui: {
+    cancel: 'Cancel',
+    logoHome: 'Sunju - go to the home page',
+    logoTagline: 'School Bus Service',
+    skipToContent: 'Skip to content',
+    mainNavigation: 'Main navigation',
+    sidebar: 'Sidebar navigation',
+    theme: {
+      label: 'Theme',
+      auto: 'Auto',
+      day: 'Day',
+      night: 'Night',
+      current: 'Showing the {{theme}} theme',
+    },
+    footer: {
+      callUs: 'Call us on {{phone}}',
+      emailUs: 'Email us at {{email}}',
+      sendInquiry: 'Send an inquiry',
+    },
+    inquiry: {
+      title: 'Send us an inquiry',
+      intro: 'Tell us what you need and we will get back to you shortly.',
+      name: 'Your name',
+      contact: 'Phone or email',
+      contactHint: 'We will reply on this number or address.',
+      message: 'Message',
+      send: 'Send inquiry',
+      sending: 'Sending…',
+      success: 'Thank you! We have received your inquiry and will be in touch soon.',
+      error: 'Could not send your inquiry. Please try again, or contact us directly.',
+      nameRequired: 'Please enter your name',
+      contactRequired: 'Please enter a phone number or email',
+      contactInvalid: 'Enter a valid phone number or email address',
+      messageRequired: 'Please write a short message',
+      messageTooLong: 'Please keep the message under 2000 characters',
+      reachUs: 'Prefer to talk? Reach us directly',
+      call: 'Call {{phone}}',
+      email: 'Email {{email}}',
+    },
+  },
+};

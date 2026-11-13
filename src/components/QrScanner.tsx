@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { BrowserQRCodeReader } from '@zxing/browser';
 import type { IScannerControls } from '@zxing/browser';
 import { Button } from '@/components/ui/Button';
@@ -10,8 +11,9 @@ interface QrScannerProps {
 
 /** A live camera panel that decodes a child's boarding QR code. Stops the camera stream on unmount either way. */
 export function QrScanner({ onScan, onClose }: QrScannerProps) {
+  const { t } = useTranslation();
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [cameraError, setCameraError] = useState(false);
 
   useEffect(() => {
     const reader = new BrowserQRCodeReader();
@@ -27,7 +29,7 @@ export function QrScanner({ onScan, onClose }: QrScannerProps) {
       .then((c) => {
         controls = c;
       })
-      .catch(() => setError('Could not access the camera. Check permissions and try again.'));
+      .catch(() => setCameraError(true));
 
     return () => {
       cancelled = true;
@@ -38,13 +40,13 @@ export function QrScanner({ onScan, onClose }: QrScannerProps) {
 
   return (
     <div className="flex flex-col gap-2 rounded-md border border-slate-200 p-3">
-      {error ? (
-        <p className="text-sm text-red-600">{error}</p>
+      {cameraError ? (
+        <p className="text-sm text-red-600">{t('qr.cameraError')}</p>
       ) : (
         <video ref={videoRef} className="w-full max-w-sm rounded-md bg-black" muted />
       )}
       <Button variant="secondary" onClick={onClose}>
-        Close scanner
+        {t('qr.closeScanner')}
       </Button>
     </div>
   );

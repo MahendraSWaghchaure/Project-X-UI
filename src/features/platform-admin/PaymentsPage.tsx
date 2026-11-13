@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   listAllWaiverRequests,
@@ -16,6 +17,7 @@ import type { WaiverRequest } from '@/types/payment';
 import { SkeletonTable } from '@/components/ui/Skeleton';
 
 function WaiverReviewRow({ waiver }: { waiver: WaiverRequest }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [note, setNote] = useState('');
 
@@ -23,19 +25,19 @@ function WaiverReviewRow({ waiver }: { waiver: WaiverRequest }) {
     mutationFn: (status: 'APPROVED' | 'REJECTED') => reviewWaiverRequest(waiver.id, status, note || undefined),
     onSuccess: (updated) => {
       queryClient.invalidateQueries({ queryKey: ['all-waivers'] });
-      toast.success(`Waiver ${updated.status.toLowerCase()}`);
+      toast.success(t(`platformPay.waiverToast.${updated.status}`));
     },
-    onError: (error) => toast.error(backendErrorMessage(error, 'Could not review waiver')),
+    onError: (error) => toast.error(backendErrorMessage(error, t('platformPay.reviewFailed'))),
   });
 
   return (
     <li className="py-3">
       <div className="flex items-center justify-between gap-4">
         <p className="font-medium text-slate-900">
-          Invoice #{waiver.feeInvoiceId} &middot; Parent #{waiver.parentId} &middot; School #{waiver.schoolId}
+          {t('platformPay.waiverRef', { invoice: waiver.feeInvoiceId, parent: waiver.parentId, school: waiver.schoolId })}
         </p>
         <Badge tone={waiver.status === 'PENDING' ? 'warning' : waiver.status === 'APPROVED' ? 'success' : 'danger'}>
-          {waiver.status}
+          {t(`platformPay.waiverStatus.${waiver.status}`)}
         </Badge>
       </div>
       <p className="mt-1 text-sm text-slate-600">{waiver.reason}</p>
@@ -44,40 +46,41 @@ function WaiverReviewRow({ waiver }: { waiver: WaiverRequest }) {
           <input
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            placeholder="Review note (optional)"
+            placeholder={t('platformPay.notePlaceholder')}
             className="flex-1 rounded-md border border-slate-300 px-3 py-1.5 text-sm"
           />
           <Button isLoading={mutation.isPending} onClick={() => mutation.mutate('APPROVED')}>
-            Approve
+            {t('platformPay.approve')}
           </Button>
           <Button variant="danger" isLoading={mutation.isPending} onClick={() => mutation.mutate('REJECTED')}>
-            Reject
+            {t('platformPay.reject')}
           </Button>
         </div>
       ) : (
-        waiver.reviewNote && <p className="mt-1 text-sm text-slate-500">Review note: {waiver.reviewNote}</p>
+        waiver.reviewNote && <p className="mt-1 text-sm text-slate-500">{t('platformPay.reviewNote', { note: waiver.reviewNote })}</p>
       )}
     </li>
   );
 }
 
 export function PlatformAdminPaymentsPage() {
+  const { t } = useTranslation();
   const { data: waivers, isLoading } = useQuery({ queryKey: ['all-waivers'], queryFn: listAllWaiverRequests });
 
   const generateInvoicesMutation = useMutation({
     mutationFn: triggerGenerateInvoices,
-    onSuccess: () => toast.success('Monthly invoice generation run'),
-    onError: (error) => toast.error(backendErrorMessage(error, 'Could not run invoice generation')),
+    onSuccess: () => toast.success(t('platformPay.invoicesRun')),
+    onError: (error) => toast.error(backendErrorMessage(error, t('platformPay.invoicesFailed'))),
   });
   const accrueLateFeesMutation = useMutation({
     mutationFn: triggerAccrueLateFees,
-    onSuccess: () => toast.success('Late fee accrual run'),
-    onError: (error) => toast.error(backendErrorMessage(error, 'Could not run late fee accrual')),
+    onSuccess: () => toast.success(t('platformPay.lateFeesRun')),
+    onError: (error) => toast.error(backendErrorMessage(error, t('platformPay.lateFeesFailed'))),
   });
   const runPayrollMutation = useMutation({
     mutationFn: triggerRunPayroll,
-    onSuccess: () => toast.success('Payroll run triggered'),
-    onError: (error) => toast.error(backendErrorMessage(error, 'Could not run payroll')),
+    onSuccess: () => toast.success(t('platformPay.payrollRun')),
+    onError: (error) => toast.error(backendErrorMessage(error, t('platformPay.payrollFailed'))),
   });
 
   const pendingWaivers = waivers?.filter((w) => w.status === 'PENDING') ?? [];
@@ -85,33 +88,32 @@ export function PlatformAdminPaymentsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold text-slate-900">Payments</h1>
+      <h1 className="text-2xl font-bold text-slate-900">{t('platformPay.title')}</h1>
 
       <Card>
         <CardHeader>
-          <CardTitle>Billing jobs</CardTitle>
+          <CardTitle>{t('platformPay.billingJobs')}</CardTitle>
           <p className="mt-1 text-sm text-slate-500">
-            These normally run on a schedule (invoices on the 1st, late fees daily, payroll on the 10th) - trigger them
-            manually here if needed.
+            {t('platformPay.billingHint')}
           </p>
         </CardHeader>
         <CardBody className="flex flex-wrap gap-3">
           <Button variant="secondary" isLoading={generateInvoicesMutation.isPending} onClick={() => generateInvoicesMutation.mutate()}>
-            Generate this month's invoices
+            {t('platformPay.generateInvoices')}
           </Button>
           <Button variant="secondary" isLoading={accrueLateFeesMutation.isPending} onClick={() => accrueLateFeesMutation.mutate()}>
-            Run late fee accrual
+            {t('platformPay.runLateFees')}
           </Button>
           <Button variant="secondary" isLoading={runPayrollMutation.isPending} onClick={() => runPayrollMutation.mutate()}>
-            Run driver payroll
+            {t('platformPay.runPayroll')}
           </Button>
         </CardBody>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Late-fee waiver requests</CardTitle>
-          <p className="mt-1 text-sm text-slate-500">Reviewed by the platform admin, not individual schools.</p>
+          <CardTitle>{t('platformPay.waiverRequests')}</CardTitle>
+          <p className="mt-1 text-sm text-slate-500">{t('platformPay.waiverHint')}</p>
         </CardHeader>
         <CardBody>
           {isLoading && <SkeletonTable rows={4} columns={3} />}
@@ -119,11 +121,11 @@ export function PlatformAdminPaymentsPage() {
             {pendingWaivers.map((waiver) => (
               <WaiverReviewRow key={waiver.id} waiver={waiver} />
             ))}
-            {pendingWaivers.length === 0 && <p className="py-3 text-sm text-slate-500">No pending waiver requests.</p>}
+            {pendingWaivers.length === 0 && <p className="py-3 text-sm text-slate-500">{t('platformPay.noPending')}</p>}
           </ul>
           {reviewedWaivers.length > 0 && (
             <>
-              <p className="mt-4 mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Previously reviewed</p>
+              <p className="mt-4 mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">{t('platformPay.previouslyReviewed')}</p>
               <ul className="flex flex-col divide-y divide-slate-100">
                 {reviewedWaivers.map((waiver) => (
                   <WaiverReviewRow key={waiver.id} waiver={waiver} />

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 import { acceptInvitation } from '@/lib/api/auth';
 import { useAuthStore } from '@/lib/authStore';
@@ -12,18 +13,20 @@ import { Logo } from '@/components/ui/Logo';
 
 const schema = z
   .object({
-    newPassword: z.string().min(8, 'At least 8 characters'),
+    newPassword: z.string().min(8, 'auth.passwordAtLeast8'),
     confirmPassword: z.string(),
   })
   .refine((values) => values.newPassword === values.confirmPassword, {
-    message: 'Passwords do not match',
+    message: 'auth.passwordsMismatch',
     path: ['confirmPassword'],
   });
 type FormValues = z.infer<typeof schema>;
 
 export function AcceptInvitePage() {
   const { token } = useParams<{ token: string }>();
+  const { t } = useTranslation();
   const navigate = useNavigate();
+  const err = (m?: string) => (m ? t(m) : undefined);
   const setSession = useAuthStore((state) => state.setSession);
   const [serverError, setServerError] = useState<string | null>(null);
   const {
@@ -40,7 +43,7 @@ export function AcceptInvitePage() {
       setSession(tokens);
       navigate('/parent/complete-profile');
     } catch {
-      setServerError('This invite link is invalid or has expired');
+      setServerError(t('auth.accept.invalid'));
     }
   }
 
@@ -49,21 +52,28 @@ export function AcceptInvitePage() {
       <Logo size="lg" />
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>Welcome to Sunju</CardTitle>
-          <p className="mt-1 text-sm text-slate-500">Choose a password to activate your account.</p>
+          <CardTitle>{t('auth.accept.title')}</CardTitle>
+          <p className="mt-1 text-sm text-slate-500">{t('auth.accept.subtitle')}</p>
         </CardHeader>
         <CardBody>
           <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-            <Input label="New password" type="password" error={errors.newPassword?.message} {...register('newPassword')} />
             <Input
-              label="Confirm password"
+              label={t('auth.newPassword')}
               type="password"
-              error={errors.confirmPassword?.message}
+              required
+              error={err(errors.newPassword?.message)}
+              {...register('newPassword')}
+            />
+            <Input
+              label={t('auth.confirmPassword')}
+              type="password"
+              required
+              error={err(errors.confirmPassword?.message)}
               {...register('confirmPassword')}
             />
             {serverError && <p className="text-sm text-red-600">{serverError}</p>}
             <Button type="submit" isLoading={isSubmitting} className="mt-2 w-full">
-              Activate account
+              {t('auth.accept.submit')}
             </Button>
           </form>
         </CardBody>

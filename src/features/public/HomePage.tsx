@@ -1,92 +1,73 @@
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { PublicLayout } from '@/components/layout/PublicLayout';
 import { Button } from '@/components/ui/Button';
-
-interface FleetPhoto {
-  src: string;
-  alt: string;
-  caption: string;
-}
 
 // Real, currently-in-service school buses, photographed in three different Indian cities - not
 // one hero shot pretending to represent the whole country. Every bus here already shows the
 // kind of safety signage (STOP arm, "SCHOOL BUS", school name + phone number on the body) this
 // product's insurance and verified-driver features back up. Free-license photos (Pexels/
-// Wikimedia Commons), courtesy credit in the footer - see PublicFooter.
-const FLEET_PHOTOS: FleetPhoto[] = [
+// Wikimedia Commons), courtesy credit in the footer - see PublicFooter. alt/caption text lives in
+// the `home.fleet.<key>` locale entries.
+const FLEET_PHOTOS = [
   {
+    key: 'talegaon',
     src: 'https://images.pexels.com/photos/28203486/pexels-photo-28203486.jpeg?auto=compress&cs=tinysrgb&w=700',
-    alt: 'A fleet of yellow school buses with STOP-arm signage in Talegaon Dabhade, Maharashtra',
-    caption: 'Talegaon, Maharashtra',
   },
   {
+    key: 'indore',
     src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/03/School_bus%2C_Indore.jpg/960px-School_bus%2C_Indore.jpg',
-    alt: 'A school bus with the school name and phone number printed on the side, Indore',
-    caption: 'Indore, Madhya Pradesh',
   },
   {
+    key: 'kerala',
     src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/96/School_bus_kerala.JPG/960px-School_bus_kerala.JPG',
-    alt: 'A government school bus with a STOP sign on the door, Kerala',
-    caption: 'Kerala',
   },
-];
+] as const;
 
 const EXPLORE_LINKS = [
-  {
-    to: '/about',
-    label: 'About Sunju',
-    title: 'The problem we’re solving',
-    body: '50–60% of Indian parents put their kids on transport with zero accountability. Here’s the everyday problem Sunju replaces.',
-  },
-  {
-    to: '/vision',
-    label: 'Our vision',
-    title: 'Where we’re headed',
-    body: 'Every school van and bus in India, trackable and insured by default — not just the fleets large operators already run well.',
-  },
-  {
-    to: '/benefits',
-    label: 'Benefits',
-    title: 'What’s in it for you',
-    body: 'Parents, children, schools, and drivers each get something different out of Sunju. See what it means for your role.',
-  },
-];
+  { to: '/about', key: 'about' },
+  { to: '/vision', key: 'vision' },
+  { to: '/benefits', key: 'benefits' },
+] as const;
+
+const CHIPS = ['gps', 'verified', 'insurance', 'alerts'] as const;
 
 export function HomePage() {
+  const { t } = useTranslation();
   return (
     <PublicLayout>
       {/* Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-blue-50 to-white px-4 py-16 sm:px-6 sm:py-20">
+      <section className="relative overflow-hidden bg-gradient-to-b from-blue-50/60 to-transparent px-4 py-16 sm:px-6 sm:py-20">
         <div
           aria-hidden
-          className="pointer-events-none absolute -top-24 right-0 h-96 w-96 rounded-full bg-blue-200/40 blur-3xl"
+          className="pointer-events-none absolute -top-24 right-0 h-96 w-96 rounded-full bg-accent/45 blur-3xl dark:bg-accent/10"
         />
         <div
           aria-hidden
-          className="pointer-events-none absolute bottom-0 left-0 h-72 w-72 rounded-full bg-amber-200/30 blur-3xl"
+          className="pointer-events-none absolute bottom-0 left-0 h-72 w-72 rounded-full bg-primary/20 blur-3xl dark:bg-primary/30"
         />
+        <div aria-hidden className="bg-grid pointer-events-none absolute inset-0" />
         <div className="relative mx-auto grid max-w-6xl items-center gap-10 md:grid-cols-2">
           <div className="text-center md:text-left">
             <h1 className="mx-auto max-w-xl text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl md:mx-0">
-              Privately-run school transport, <span className="text-blue-600">finally accountable</span>
+              {t('home.heroTitle')} <span className="text-primary-text dark:text-accent">{t('home.heroTitleAccent')}</span>
             </h1>
             <p className="mx-auto mt-5 max-w-xl text-lg text-slate-600 md:mx-0">
-              Sunju brings live GPS tracking, arrival alerts, insurance coverage, and verified drivers to school
-              vans and buses across India &mdash; so every parent knows where their child is, in real time.
+              {t('home.heroBody')}
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3 md:justify-start">
               <Link to="/login">
-                <Button className="px-6 py-2.5 text-base">Sign in</Button>
+                <Button className="px-6 py-2.5 text-base">{t('home.signIn')}</Button>
               </Link>
               <Link to="/driver/register">
                 <Button variant="secondary" className="px-6 py-2.5 text-base">
-                  Register as a driver
+                  {t('home.registerDriver')}
                 </Button>
               </Link>
             </div>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 md:justify-start">
-              {['Live GPS tracking', 'Verified drivers', 'Insurance covered', 'Instant alerts'].map((label) => (
-                <span key={label} className="flex items-center gap-1.5 text-sm font-medium text-slate-500">
+              {CHIPS.map((chip) => (
+                <span key={chip} className="flex items-center gap-1.5 text-sm font-medium text-slate-500">
                   <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-blue-500">
                     <path
                       fillRule="evenodd"
@@ -94,7 +75,7 @@ export function HomePage() {
                       clipRule="evenodd"
                     />
                   </svg>
-                  {label}
+                  {t(`home.chips.${chip}`)}
                 </span>
               ))}
             </div>
@@ -106,18 +87,18 @@ export function HomePage() {
             <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
               <div className="relative h-64 bg-gradient-to-br from-blue-50 via-slate-50 to-amber-50">
                 <svg viewBox="0 0 400 260" className="absolute inset-0 h-full w-full" aria-hidden>
-                  <path d="M-20 210 C 100 160, 180 250, 300 180 S 420 60, 460 90" stroke="#cbd5e1" strokeWidth="10" fill="none" />
+                  <path d="M-20 210 C 100 160, 180 250, 300 180 S 420 60, 460 90" className="stroke-slate-300" strokeWidth="10" fill="none" />
                   <path
                     d="M-20 210 C 100 160, 180 250, 300 180 S 420 60, 460 90"
-                    stroke="#f8fafc"
+                    className="stroke-slate-50"
                     strokeWidth="2"
                     strokeDasharray="8 8"
                     fill="none"
                   />
                 </svg>
                 <div className="absolute left-4 top-4 max-w-[13rem] rounded-lg bg-white/95 px-3 py-2 shadow-md">
-                  <p className="text-xs font-semibold text-slate-900">Route 12 &middot; MH-14-LL-2747</p>
-                  <p className="text-xs font-medium text-blue-600">Arriving in 4 min</p>
+                  <p className="text-xs font-semibold text-slate-900">{t('home.mockRoute')}</p>
+                  <p className="text-xs font-medium text-blue-600">{t('home.mockEta')}</p>
                 </div>
                 <div className="absolute left-[58%] top-[42%] -translate-x-1/2 -translate-y-1/2">
                   <span className="absolute inline-flex h-9 w-9 animate-ping rounded-full bg-blue-400 opacity-60" />
@@ -139,8 +120,8 @@ export function HomePage() {
                   </svg>
                 </span>
                 <div>
-                  <p className="text-sm font-medium text-slate-900">Aarav confirmed home safely</p>
-                  <p className="text-xs text-slate-400">3:45 PM &middot; by parent</p>
+                  <p className="text-sm font-medium text-slate-900">{t('home.mockConfirmed')}</p>
+                  <p className="text-xs text-slate-400">{t('home.mockTime')}</p>
                 </div>
               </div>
             </div>
@@ -149,20 +130,20 @@ export function HomePage() {
       </section>
 
       {/* Fleet - auto-scrolling strip of real, currently-in-service buses from different cities */}
-      <section aria-label="Our fleet, across India" className="overflow-hidden border-y border-slate-100 bg-white py-10">
+      <section aria-label={t('home.fleetLabel')} className="overflow-hidden border-y border-slate-100 bg-white py-10">
         <p className="mb-6 text-center text-sm font-semibold uppercase tracking-wide text-slate-400">
-          Real buses, real safety signage &mdash; every city we run in
+          {t('home.fleetTitle')}
         </p>
         <div className="flex w-max animate-marquee">
           {[...FLEET_PHOTOS, ...FLEET_PHOTOS].map((photo, i) => (
-            <figure key={`${photo.caption}-${i}`} className="mx-3 w-72 flex-shrink-0">
+            <figure key={`${photo.key}-${i}`} className="mx-3 w-72 flex-shrink-0">
               <img
                 src={photo.src}
-                alt={photo.alt}
+                alt={t(`home.fleet.${photo.key}.alt`)}
                 className="h-48 w-72 rounded-xl object-cover shadow-md"
                 loading={i < FLEET_PHOTOS.length ? 'eager' : 'lazy'}
               />
-              <figcaption className="mt-2 text-center text-sm font-medium text-slate-500">{photo.caption}</figcaption>
+              <figcaption className="mt-2 text-center text-sm font-medium text-slate-500">{t(`home.fleet.${photo.key}.caption`)}</figcaption>
             </figure>
           ))}
         </div>
@@ -171,8 +152,8 @@ export function HomePage() {
       {/* Explore - each topic now lives on its own page instead of one long scroll */}
       <section className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
         <div className="text-center">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-blue-600">Learn more</h2>
-          <p className="mt-3 text-3xl font-bold text-slate-900">Everything behind the tracking map</p>
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-blue-600">{t('home.learnMore')}</h2>
+          <p className="mt-3 text-3xl font-bold text-slate-900">{t('home.exploreTitle')}</p>
         </div>
         <div className="mt-10 grid gap-6 sm:grid-cols-3">
           {EXPLORE_LINKS.map((item) => (
@@ -181,10 +162,10 @@ export function HomePage() {
               to={item.to}
               className="group flex flex-col rounded-lg border border-slate-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md"
             >
-              <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">{item.label}</p>
-              <p className="mt-2 text-lg font-bold text-slate-900">{item.title}</p>
-              <p className="mt-2 flex-1 text-sm text-slate-600">{item.body}</p>
-              <span className="mt-4 text-sm font-semibold text-blue-600 group-hover:underline">Read more &rarr;</span>
+              <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">{t(`home.explore.${item.key}.label`)}</p>
+              <p className="mt-2 text-lg font-bold text-slate-900">{t(`home.explore.${item.key}.title`)}</p>
+              <p className="mt-2 flex-1 text-sm text-slate-600">{t(`home.explore.${item.key}.body`)}</p>
+              <span className="mt-4 text-sm font-semibold text-blue-600 group-hover:underline">{t('home.readMore')}</span>
             </Link>
           ))}
         </div>

@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { getPlatformDashboardStats } from '@/lib/api/stats';
 import { Card, CardBody } from '@/components/ui/Card';
 import { cn } from '@/lib/cn';
@@ -30,6 +31,7 @@ function StatCard({
 }
 
 export function PlatformAdminDashboardPage() {
+  const { t } = useTranslation();
   // A single indexed-aggregate call instead of fetching every school/grievance/waiver/driver row
   // just to compute a length - stays cheap as the platform grows, and refetchInterval keeps the
   // numbers live without a full page reload.
@@ -44,45 +46,43 @@ export function PlatformAdminDashboardPage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-900">Platform overview</h1>
+        <h1 className="text-2xl font-bold text-slate-900">{t('platformDash.title')}</h1>
         <Link to="/platform-admin/schools" className="text-sm font-medium text-blue-600 hover:underline">
-          Manage schools &rarr;
+          {t('platformDash.manageSchools')} &rarr;
         </Link>
       </div>
 
       {pendingWaivers > 0 && (
         <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          {pendingWaivers} late-fee waiver request{pendingWaivers > 1 ? 's are' : ' is'} waiting on your review.{' '}
+          {t('platformDash.waiversBanner', { count: pendingWaivers })}{' '}
           <Link to="/platform-admin/payments" className="font-semibold underline">
-            Review now
+            {t('platformDash.reviewNow')}
           </Link>
         </div>
       )}
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-        <StatCard label="Schools onboarded" value={isLoading ? '—' : (stats?.schoolsTotal ?? 0)} to="/platform-admin/schools" />
-        <StatCard label="Active" value={isLoading ? '—' : (stats?.schoolsActive ?? 0)} to="/platform-admin/schools" />
-        <StatCard label="Suspended" value={isLoading ? '—' : (stats?.schoolsSuspended ?? 0)} to="/platform-admin/schools" />
-        <StatCard label="Open grievances" value={stats?.openGrievances ?? 0} to="/platform-admin/grievances" />
+        <StatCard label={t('platformDash.schoolsOnboarded')} value={isLoading ? '—' : (stats?.schoolsTotal ?? 0)} to="/platform-admin/schools" />
+        <StatCard label={t('platformDash.active')} value={isLoading ? '—' : (stats?.schoolsActive ?? 0)} to="/platform-admin/schools" />
+        <StatCard label={t('platformDash.suspended')} value={isLoading ? '—' : (stats?.schoolsSuspended ?? 0)} to="/platform-admin/schools" />
+        <StatCard label={t('platformDash.openGrievances')} value={stats?.openGrievances ?? 0} to="/platform-admin/grievances" />
         <StatCard
-          label="Waivers pending"
+          label={t('platformDash.waiversPending')}
           value={pendingWaivers}
           danger={pendingWaivers > 0}
           to="/platform-admin/payments"
         />
         <StatCard
-          label="Independent drivers"
+          label={t('platformDash.independentDrivers')}
           value={stats?.independentDriversUnclaimed ?? 0}
-          hint="unclaimed pool"
+          hint={t('platformDash.unclaimedPool')}
         />
       </div>
 
       <Card>
         <CardBody>
           <p className="text-sm text-slate-600">
-            You're the platform operator - the only role that spans every school. From here you onboard new schools
-            (which creates their first school admin login automatically); each school then manages its own
-            vehicles, drivers, routes, and students independently.
+            {t('platformDash.intro')}
           </p>
         </CardBody>
       </Card>

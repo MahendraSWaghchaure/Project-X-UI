@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { listMyChildren } from '@/lib/api/children';
 import { getMyParentProfile } from '@/lib/api/parents';
 import { listMyFeeInvoices, listMyWaiverRequests } from '@/lib/api/payments';
@@ -10,11 +11,11 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/cn';
 
-function greeting(): string {
+function greetingKey(): 'morning' | 'afternoon' | 'evening' {
   const hour = new Date().getHours();
-  if (hour < 12) return 'Good morning';
-  if (hour < 17) return 'Good afternoon';
-  return 'Good evening';
+  if (hour < 12) return 'morning';
+  if (hour < 17) return 'afternoon';
+  return 'evening';
 }
 
 interface StatCardProps {
@@ -40,6 +41,8 @@ function StatCard({ label, value, to, hint, danger }: StatCardProps) {
 }
 
 export function ParentDashboardPage() {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.resolvedLanguage === 'hi' ? 'hi-IN' : 'en-IN';
   const { data: profile } = useQuery({ queryKey: ['my-parent-profile'], queryFn: getMyParentProfile });
   const { data: children } = useQuery({ queryKey: ['my-children'], queryFn: listMyChildren });
   const { data: invoices } = useQuery({ queryKey: ['my-fee-invoices'], queryFn: listMyFeeInvoices });
@@ -60,70 +63,75 @@ export function ParentDashboardPage() {
 
   const heroSubtitle =
     activeChildren.length === 0
-      ? 'Once your child is registered, you will see their ride status here.'
+      ? t('parentDash.heroNone')
       : activeChildren.length === 1
-        ? `Here's what's happening with ${activeChildren[0].firstName}'s ride today`
-        : `Here's what's happening with your children's rides today`;
+        ? t('parentDash.heroOne', { name: activeChildren[0].firstName })
+        : t('parentDash.heroMany');
 
   return (
     <div className="flex flex-col gap-6">
       <div className="rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 px-6 py-5 text-white shadow-sm">
-        <p className="text-sm text-blue-100">
-          {greeting()}
+        <p className="text-sm text-white/85">
+          {t(`driver.dashboard.greeting.${greetingKey()}`)}
           {profile?.firstName ? `, ${profile.firstName}` : ''}
         </p>
         <h1 className="mt-1 text-2xl font-bold">{heroSubtitle}</h1>
       </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard label="Children" value={activeChildren.length} to="/parent/children" />
+        <StatCard label={t('parentDash.children')} value={activeChildren.length} to="/parent/children" />
         <StatCard
-          label="Fee due"
+          label={t('parentDash.feeDue')}
           value={`₹${totalDue.toFixed(0)}`}
-          hint={overdueCount > 0 ? `${overdueCount} overdue` : nextDue ? `due ${nextDue.dueDate}` : 'all clear'}
+          hint={
+            overdueCount > 0
+              ? t('parentDash.overdueHint', { count: overdueCount })
+              : nextDue
+                ? t('parentDash.dueHint', { date: nextDue.dueDate })
+                : t('parentDash.allClear')
+          }
           danger={overdueCount > 0}
           to="/parent/payments"
         />
-        <StatCard label="Open grievances" value={openGrievances} to="/parent/grievances" />
-        <StatCard label="Notifications" value={notifications?.totalElements ?? 0} to="/parent/notifications" />
+        <StatCard label={t('parentDash.openGrievances')} value={openGrievances} to="/parent/grievances" />
+        <StatCard label={t('notifications.title')} value={notifications?.totalElements ?? 0} to="/parent/notifications" />
       </div>
 
       {overdueCount > 0 && (
         <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-          You have {overdueCount} overdue invoice{overdueCount > 1 ? 's' : ''} totalling &#8377;{totalDue.toFixed(0)}. Late
-          fees of &#8377;50/day are accruing.{' '}
+          {t('parentDash.overdueBanner', { count: overdueCount, total: totalDue.toFixed(0) })}{' '}
           <Link to="/parent/payments" className="font-semibold underline">
-            Pay now
+            {t('parentDash.payNow')}
           </Link>{' '}
-          or request a waiver if this is due to an emergency.
-          {pendingWaivers > 0 && <span className="ml-1">({pendingWaivers} waiver request pending review)</span>}
+          {t('parentDash.orWaiver')}
+          {pendingWaivers > 0 && <span className="ml-1">{t('parentDash.waiversPending', { count: pendingWaivers })}</span>}
         </div>
       )}
       {overdueCount === 0 && nextDue && (
         <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          Next payment of &#8377;{nextDue.totalAmount.toFixed(0)} due {nextDue.dueDate}.{' '}
+          {t('parentDash.nextPayment', { amount: nextDue.totalAmount.toFixed(0), date: nextDue.dueDate })}{' '}
           <Link to="/parent/payments" className="font-semibold underline">
-            Pay now, or pay several months in advance for a discount
+            {t('parentDash.payAdvanceLink')}
           </Link>
           .
         </div>
       )}
       {overdueCount === 0 && !nextDue && activeChildren.length > 0 && (
         <div className="rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
-          You're all paid up. Nothing due right now.
+          {t('parentDash.allPaid')}
         </div>
       )}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader className="flex items-center justify-between">
-            <CardTitle>My children</CardTitle>
+            <CardTitle>{t('parentDash.myChildren')}</CardTitle>
             <Link to="/parent/children" className="text-sm font-medium text-blue-600 hover:underline">
-              Manage &rarr;
+              {t('parentDash.manage')}
             </Link>
           </CardHeader>
           <CardBody>
-            {activeChildren.length === 0 && <p className="text-sm text-slate-500">No children registered yet.</p>}
+            {activeChildren.length === 0 && <p className="text-sm text-slate-500">{t('parentChildren.empty')}</p>}
             <ul className="divide-y divide-slate-100">
               {activeChildren.map((child) => (
                 <li key={child.id} className="flex items-center justify-between py-3">
@@ -131,12 +139,12 @@ export function ParentDashboardPage() {
                     <p className="font-medium text-slate-900">
                       {child.firstName} {child.lastName}
                     </p>
-                    <p className="text-sm text-slate-500">{child.classSection ?? 'No class set'}</p>
+                    <p className="text-sm text-slate-500">{child.classSection ?? t('parentDash.noClass')}</p>
                   </div>
                   <div className="flex gap-2">
-                    <Badge tone={child.routeId ? 'success' : 'neutral'}>{child.routeId ? 'Route assigned' : 'No route'}</Badge>
+                    <Badge tone={child.routeId ? 'success' : 'neutral'}>{child.routeId ? t('parentDash.routeAssigned') : t('parentDash.noRoute')}</Badge>
                     <Badge tone={child.insurancePolicyId ? 'info' : 'neutral'}>
-                      {child.insurancePolicyId ? 'Insured' : 'Not insured'}
+                      {child.insurancePolicyId ? t('parentChildren.insured') : t('parentChildren.notInsured')}
                     </Badge>
                   </div>
                 </li>
@@ -147,27 +155,27 @@ export function ParentDashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Quick actions</CardTitle>
+            <CardTitle>{t('parentDash.quickActions')}</CardTitle>
           </CardHeader>
           <CardBody className="flex flex-col gap-3">
             <Link to="/parent/track">
               <Button variant="secondary" className="w-full justify-start">
-                Track the bus live
+                {t('parentDash.trackLive')}
               </Button>
             </Link>
             <Link to="/parent/payments">
               <Button variant="secondary" className="w-full justify-start">
-                Pay fees / view receipts
+                {t('parentDash.payFees')}
               </Button>
             </Link>
             <Link to="/parent/grievances">
               <Button variant="secondary" className="w-full justify-start">
-                Raise a grievance
+                {t('parentDash.raiseGrievance')}
               </Button>
             </Link>
             <Link to="/parent/children">
               <Button variant="secondary" className="w-full justify-start">
-                Manage children
+                {t('parentDash.manageChildren')}
               </Button>
             </Link>
           </CardBody>
@@ -176,18 +184,18 @@ export function ParentDashboardPage() {
 
       <Card>
         <CardHeader className="flex items-center justify-between">
-          <CardTitle>Recent notifications</CardTitle>
+          <CardTitle>{t('parentDash.recentNotifications')}</CardTitle>
           <Link to="/parent/notifications" className="text-sm font-medium text-blue-600 hover:underline">
-            View all &rarr;
+            {t('parentDash.viewAll')}
           </Link>
         </CardHeader>
         <CardBody>
-          {recentNotifications.length === 0 && <p className="text-sm text-slate-500">No notifications yet.</p>}
+          {recentNotifications.length === 0 && <p className="text-sm text-slate-500">{t('parentApp.noNotifications')}</p>}
           <ul className="divide-y divide-slate-100">
             {recentNotifications.map((n) => (
               <li key={n.id} className="flex items-center justify-between py-2 text-sm">
-                <span className="text-slate-700 capitalize">{n.templateKey.replaceAll('_', ' ').toLowerCase()}</span>
-                <span className="text-slate-400">{new Date(n.createdAt).toLocaleString()}</span>
+                <span className="text-slate-700 capitalize">{t(`parentApp.notificationTemplate.${n.templateKey}`, { defaultValue: n.templateKey.replaceAll('_', ' ').toLowerCase() })}</span>
+                <span className="text-slate-400">{new Date(n.createdAt).toLocaleString(locale)}</span>
               </li>
             ))}
           </ul>

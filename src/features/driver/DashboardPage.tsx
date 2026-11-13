@@ -6,6 +6,7 @@ import { listMyGrievances } from '@/lib/api/grievances';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/cn';
 import type { TripStatus } from '@/types/tracking';
 
@@ -13,11 +14,11 @@ function today(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-function greeting(): string {
+function greetingKey(): 'morning' | 'afternoon' | 'evening' {
   const hour = new Date().getHours();
-  if (hour < 12) return 'Good morning';
-  if (hour < 17) return 'Good afternoon';
-  return 'Good evening';
+  if (hour < 12) return 'morning';
+  if (hour < 17) return 'afternoon';
+  return 'evening';
 }
 
 const STATUS_TONE: Record<TripStatus, 'neutral' | 'success' | 'warning' | 'danger' | 'info'> = {
@@ -51,6 +52,7 @@ function StatCard({ label, value, to, hint, danger }: StatCardProps) {
 }
 
 export function DriverDashboardPage() {
+  const { t } = useTranslation();
   const { data: trips } = useQuery({ queryKey: ['my-trips', today()], queryFn: () => listMyTripsAsDriver(today()) });
   const { data: payroll } = useQuery({ queryKey: ['my-payroll'], queryFn: listMyPayroll });
   const { data: bankDetails, isFetched: bankFetched } = useQuery({
@@ -60,50 +62,60 @@ export function DriverDashboardPage() {
   });
   const { data: grievances } = useQuery({ queryKey: ['my-grievances'], queryFn: listMyGrievances });
 
-  const pendingTrips = (trips ?? []).filter((t) => t.status === 'SCHEDULED' || t.status === 'IN_PROGRESS').length;
+  const pendingTrips = (trips ?? []).filter((trip) => trip.status === 'SCHEDULED' || trip.status === 'IN_PROGRESS').length;
   const openGrievances = (grievances ?? []).filter((g) => g.status === 'OPEN' || g.status === 'IN_PROGRESS').length;
   const latestPayroll = [...(payroll ?? [])].sort((a, b) => b.periodStart.localeCompare(a.periodStart))[0];
   const bankMissing = bankFetched && !bankDetails;
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 px-6 py-5 text-white shadow-sm">
-        <p className="text-sm text-emerald-100">{greeting()}</p>
-        <h1 className="mt-1 text-2xl font-bold">
-          {pendingTrips > 0
-            ? `You have ${pendingTrips} trip${pendingTrips > 1 ? 's' : ''} to run today`
-            : 'No trips left to run today'}
-        </h1>
+      <div className="flex flex-col gap-4 rounded-xl bg-brand-600 px-5 py-6 text-white shadow-sm sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <div>
+          <p className="text-sm text-brand-200">{t(`driver.dashboard.greeting.${greetingKey()}`)}</p>
+          <h1 className="mt-1 text-2xl font-bold">
+            {pendingTrips > 0 ? t('driver.dashboard.tripsToRun', { count: pendingTrips }) : t('driver.dashboard.noTripsLeft')}
+          </h1>
+        </div>
+        {/* The one amber hero CTA on this screen. */}
+        <Link to="/driver/trips" className="shrink-0">
+          <Button variant="accent" size="lg" className="w-full sm:w-auto">
+            {t('driver.dashboard.openTrips')}
+          </Button>
+        </Link>
       </div>
 
       {bankMissing && (
-        <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          You haven't added your bank details yet — add them now so you don't miss the next payroll run on the 10th.{' '}
+        <div className="rounded-md border border-pending-200 bg-pending-50 px-4 py-3 text-sm text-pending-700">
+          {t('driverDash.bankMissing')}{' '}
           <Link to="/driver/payroll" className="font-semibold underline">
-            Add bank details
+            {t('driverDash.addBank')}
           </Link>
         </div>
       )}
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard label="Trips today" value={trips?.length ?? '—'} hint={`${pendingTrips} remaining`} to="/driver/trips" />
+        <StatCard label={t('driverDash.tripsToday')} value={trips?.length ?? '—'} hint={t('driverDash.remaining', { count: pendingTrips })} to="/driver/trips" />
         <StatCard
-          label="Last payroll"
+          label={t('driverDash.lastPayroll')}
           value={latestPayroll ? `₹${(latestPayroll.totalPaid ?? latestPayroll.baseSalary).toFixed(0)}` : '—'}
-          hint={latestPayroll?.status ?? 'no history yet'}
+          hint={
+            latestPayroll
+              ? t(`enums.payStatus.${latestPayroll.status}`, { defaultValue: latestPayroll.status })
+              : t('driverDash.noHistory')
+          }
           danger={latestPayroll?.status === 'FAILED'}
           to="/driver/payroll"
         />
-        <StatCard label="Open grievances" value={openGrievances} to="/driver/grievances" />
-        <StatCard label="Bank details" value={bankMissing ? 'Missing' : 'On file'} danger={bankMissing} to="/driver/payroll" />
+        <StatCard label={t('driverDash.openGrievances')} value={openGrievances} to="/driver/grievances" />
+        <StatCard label={t('driverDash.bankDetails')} value={bankMissing ? t('driverDash.missing') : t('driverDash.onFile')} danger={bankMissing} to="/driver/payroll" />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader className="flex items-center justify-between">
-            <CardTitle>Today&rsquo;s trips</CardTitle>
+            <CardTitle>{t('driverDash.todaysTrips')}</CardTitle>
             <Link to="/driver/trips" className="text-sm font-medium text-blue-600 hover:underline">
-              Manage &rarr;
+              {t('driverDash.manage')} &rarr;
             </Link>
           </CardHeader>
           <CardBody>
@@ -112,36 +124,36 @@ export function DriverDashboardPage() {
                 <li key={trip.id} className="flex items-center justify-between py-3">
                   <div>
                     <p className="font-medium text-slate-900">
-                      {trip.direction === 'MORNING_PICKUP' ? 'Morning pickup' : 'Afternoon drop'}
+                      {trip.direction === 'MORNING_PICKUP' ? t('driver.morning') : t('driver.afternoon')}
                     </p>
-                    <p className="text-sm text-slate-500">Route #{trip.routeId}</p>
+                    <p className="text-sm text-slate-500">{t('driver.route', { id: trip.routeId })}</p>
                   </div>
-                  <Badge tone={STATUS_TONE[trip.status]}>{trip.status}</Badge>
+                  <Badge tone={STATUS_TONE[trip.status]}>{t(`enums.tripStatus.${trip.status}`)}</Badge>
                 </li>
               ))}
-              {trips?.length === 0 && <p className="py-3 text-sm text-slate-500">No trips scheduled for today.</p>}
+              {trips?.length === 0 && <p className="py-3 text-sm text-slate-500">{t('driverDash.noTrips')}</p>}
             </ul>
           </CardBody>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Quick actions</CardTitle>
+            <CardTitle>{t('driverDash.quickActions')}</CardTitle>
           </CardHeader>
           <CardBody className="flex flex-col gap-3">
             <Link to="/driver/trips">
               <Button variant="secondary" className="w-full justify-start">
-                Start / mark today&rsquo;s trips
+                {t('driverDash.startTrips')}
               </Button>
             </Link>
             <Link to="/driver/payroll">
               <Button variant="secondary" className="w-full justify-start">
-                View salary history &amp; bank details
+                {t('driverDash.viewSalary')}
               </Button>
             </Link>
             <Link to="/driver/grievances">
               <Button variant="secondary" className="w-full justify-start">
-                Raise a grievance
+                {t('driverDash.raiseGrievance')}
               </Button>
             </Link>
           </CardBody>

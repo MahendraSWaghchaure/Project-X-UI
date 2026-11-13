@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 import { resetPassword } from '@/lib/api/auth';
 import { Button } from '@/components/ui/Button';
@@ -11,18 +12,20 @@ import { Logo } from '@/components/ui/Logo';
 
 const schema = z
   .object({
-    newPassword: z.string().min(8, 'At least 8 characters'),
+    newPassword: z.string().min(8, 'auth.passwordAtLeast8'),
     confirmPassword: z.string(),
   })
   .refine((values) => values.newPassword === values.confirmPassword, {
-    message: 'Passwords do not match',
+    message: 'auth.passwordsMismatch',
     path: ['confirmPassword'],
   });
 type FormValues = z.infer<typeof schema>;
 
 export function ResetPasswordPage() {
   const { token } = useParams<{ token: string }>();
+  const { t } = useTranslation();
   const navigate = useNavigate();
+  const err = (m?: string) => (m ? t(m) : undefined);
   const [serverError, setServerError] = useState<string | null>(null);
   const {
     register,
@@ -37,7 +40,7 @@ export function ResetPasswordPage() {
       await resetPassword(token, values.newPassword);
       navigate('/login', { state: { passwordReset: true } });
     } catch {
-      setServerError('This reset link is invalid or has expired - request a new one');
+      setServerError(t('auth.reset.invalid'));
     }
   }
 
@@ -46,27 +49,34 @@ export function ResetPasswordPage() {
       <Logo size="lg" />
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>Choose a new password</CardTitle>
+          <CardTitle>{t('auth.reset.title')}</CardTitle>
         </CardHeader>
         <CardBody>
           <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-            <Input label="New password" type="password" error={errors.newPassword?.message} {...register('newPassword')} />
             <Input
-              label="Confirm password"
+              label={t('auth.newPassword')}
               type="password"
-              error={errors.confirmPassword?.message}
+              required
+              error={err(errors.newPassword?.message)}
+              {...register('newPassword')}
+            />
+            <Input
+              label={t('auth.confirmPassword')}
+              type="password"
+              required
+              error={err(errors.confirmPassword?.message)}
               {...register('confirmPassword')}
             />
             {serverError && (
               <p className="text-sm text-red-600">
                 {serverError}{' '}
                 <Link to="/forgot-password" className="underline">
-                  Request a new link
+                  {t('auth.reset.requestNew')}
                 </Link>
               </p>
             )}
             <Button type="submit" isLoading={isSubmitting} className="mt-2 w-full">
-              Reset password
+              {t('auth.reset.submit')}
             </Button>
           </form>
         </CardBody>

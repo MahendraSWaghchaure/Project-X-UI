@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import { ProtectedRoute } from '@/components/layout/ProtectedRoute';
 import { AppShell } from '@/components/layout/AppShell';
 import { ScrollToTop } from '@/components/layout/ScrollToTop';
@@ -35,11 +35,48 @@ const PlatformAdminDashboardPage = lazy(() =>
   import('@/features/platform-admin/DashboardPage').then((m) => ({ default: m.PlatformAdminDashboardPage })),
 );
 const SchoolsPage = lazy(() => import('@/features/platform-admin/SchoolsPage').then((m) => ({ default: m.SchoolsPage })));
+const SchoolDetailPage = lazy(() =>
+  import('@/features/platform-admin/SchoolDetailPage').then((m) => ({ default: m.SchoolDetailPage })),
+);
+const PartnersPage = lazy(() => import('@/features/platform-admin/PartnersPage').then((m) => ({ default: m.PartnersPage })));
 const PlatformAdminGrievancesPage = lazy(() =>
   import('@/features/platform-admin/GrievancesPage').then((m) => ({ default: m.PlatformAdminGrievancesPage })),
 );
 const PlatformAdminPaymentsPage = lazy(() =>
   import('@/features/platform-admin/PaymentsPage').then((m) => ({ default: m.PlatformAdminPaymentsPage })),
+);
+
+const InquiriesPage = lazy(() => import('@/features/platform-admin/InquiriesPage').then((m) => ({ default: m.InquiriesPage })));
+const ComplainantPage = lazy(() => import('@/features/grievances/ComplainantPage').then((m) => ({ default: m.ComplainantPage })));
+const ConsentPage = lazy(() => import('@/features/public/ConsentPage').then((m) => ({ default: m.ConsentPage })));
+
+const TeacherDashboardPage = lazy(() => import('@/features/teacher/TeacherPages').then((m) => ({ default: m.TeacherDashboardPage })));
+const MyClassPage = lazy(() => import('@/features/teacher/TeacherPages').then((m) => ({ default: m.MyClassPage })));
+const MyPeriodsPage = lazy(() => import('@/features/teacher/TeacherPages').then((m) => ({ default: m.MyPeriodsPage })));
+const ExamsPage = lazy(() => import('@/features/teacher/TeacherPages').then((m) => ({ default: m.ExamsPage })));
+const TeacherAlertsPage = lazy(() => import('@/features/teacher/TeacherPages').then((m) => ({ default: m.AlertsPage })));
+
+const LeadsPage = lazy(() => import('@/features/platform-admin/LeadsPage').then((m) => ({ default: m.LeadsPage })));
+
+// School attendance screens - shared by SCHOOL_ADMIN, TEACHER and PLATFORM_ADMIN (one route group below).
+const ClassroomsPage = lazy(() => import('@/features/school/ClassroomsPage').then((m) => ({ default: m.ClassroomsPage })));
+const ClassroomDetailPage = lazy(() =>
+  import('@/features/school/ClassroomsPage').then((m) => ({ default: m.ClassroomDetailPage })),
+);
+const StudentDetailPage = lazy(() =>
+  import('@/features/school/StudentDetailPage').then((m) => ({ default: m.StudentDetailPage })),
+);
+const ArrivalsPage = lazy(() => import('@/features/school/ArrivalsPage').then((m) => ({ default: m.ArrivalsPage })));
+
+const TeachersPage = lazy(() => import('@/features/school/TeachersPage').then((m) => ({ default: m.TeachersPage })));
+const CorrectionRequestsPage = lazy(() =>
+  import('@/features/school/CorrectionRequestsPage').then((m) => ({ default: m.CorrectionRequestsPage })),
+);
+const TimetableAdminPage = lazy(() =>
+  import('@/features/school/TimetableAdminPage').then((m) => ({ default: m.TimetableAdminPage })),
+);
+const StudentsDirectoryPage = lazy(() =>
+  import('@/features/school/StudentsDirectoryPage').then((m) => ({ default: m.StudentsDirectoryPage })),
 );
 
 const SchoolAdminDashboardPage = lazy(() =>
@@ -56,12 +93,6 @@ const SchoolAdminChildrenPage = lazy(() =>
 const TripsPage = lazy(() => import('@/features/school-admin/TripsPage').then((m) => ({ default: m.TripsPage })));
 const SchoolAdminGrievancesPage = lazy(() =>
   import('@/features/school-admin/GrievancesPage').then((m) => ({ default: m.GrievancesPage })),
-);
-const SchoolAdminPaymentsPage = lazy(() =>
-  import('@/features/school-admin/PaymentsPage').then((m) => ({ default: m.PaymentsPage })),
-);
-const SchoolAdminInsurancePage = lazy(() =>
-  import('@/features/school-admin/InsurancePage').then((m) => ({ default: m.InsurancePage })),
 );
 
 const DriverDashboardPage = lazy(() =>
@@ -119,6 +150,7 @@ export default function App() {
           <Route path="/accept-invite/:token" element={<AcceptInvitePage />} />
           <Route path="/driver/register" element={<DriverRegisterPage />} />
           <Route path="/unauthorized" element={<UnauthorizedPage />} />
+          <Route path="/consent/:token" element={<ConsentPage />} />
 
           {/* Parent completes their profile right after accepting an invite, before the normal shell/nav applies */}
           <Route element={<ProtectedRoute allowedRoles={['PARENT']} />}>
@@ -129,22 +161,64 @@ export default function App() {
             <Route element={<AppShell />}>
               <Route path="/platform-admin/dashboard" element={<PlatformAdminDashboardPage />} />
               <Route path="/platform-admin/schools" element={<SchoolsPage />} />
+              <Route path="/platform-admin/schools/:id" element={<SchoolDetailPage />} />
+              <Route path="/platform-admin/partners" element={<PartnersPage />} />
               <Route path="/platform-admin/grievances" element={<PlatformAdminGrievancesPage />} />
               <Route path="/platform-admin/payments" element={<PlatformAdminPaymentsPage />} />
+              <Route path="/platform-admin/leads" element={<LeadsPage />} />
+              <Route path="/platform-admin/inquiries" element={<InquiriesPage />} />
+              <Route path="/platform-admin/users/:userId" element={<ComplainantPage backTo="/platform-admin/grievances" />} />
             </Route>
           </Route>
 
-          <Route element={<ProtectedRoute allowedRoles={['SCHOOL_ADMIN', 'PLATFORM_ADMIN']} />}>
+          {/* Student detail is shared by the school admin and teachers (the server limits what a teacher may see). */}
+          <Route element={<ProtectedRoute allowedRoles={['SCHOOL_ADMIN', 'TEACHER', 'PLATFORM_ADMIN']} />}>
+            <Route element={<AppShell />}>
+              <Route path="/school/students/:id" element={<StudentDetailPage />} />
+            </Route>
+          </Route>
+
+          {/* Old standalone screens now live inside the classrooms hub. */}
+          <Route path="/school/classrooms" element={<Navigate to="/school-admin/classrooms" replace />} />
+          <Route path="/school/students" element={<Navigate to="/school-admin/classrooms" replace />} />
+          <Route path="/school/attendance" element={<Navigate to="/school-admin/classrooms" replace />} />
+          <Route path="/school-admin/insurance" element={<Navigate to="/school-admin/dashboard" replace />} />
+          <Route path="/school-admin/payments" element={<Navigate to="/school-admin/dashboard" replace />} />
+
+          {/* C4 fix (phase 3): PLATFORM_ADMIN was previously included here with no school context - useAuthStore().schoolId
+              is null for a platform admin (not scoped to any one school), so every query guarded by `schoolId != null`
+              never ran and these pages were a silent, permanent dead end for that role (e.g. Classrooms always showed
+              "No classrooms yet", and "Add class" would have posted to `/schools/null/classrooms`). No PLATFORM_ADMIN nav
+              item ever linked here (see navConfig.ts), so nothing depended on this access - it was reachable only by typing
+              the URL. Platform admin now gets its own purpose-built `/platform-admin/schools/:id` overview page (B1) instead
+              of this school-scoped shell. */}
+          <Route element={<ProtectedRoute allowedRoles={['SCHOOL_ADMIN']} />}>
             <Route element={<AppShell />}>
               <Route path="/school-admin/dashboard" element={<SchoolAdminDashboardPage />} />
+              <Route path="/school-admin/classrooms" element={<ClassroomsPage />} />
+              <Route path="/school-admin/classrooms/:id" element={<ClassroomDetailPage />} />
+              <Route path="/school/arrivals" element={<ArrivalsPage />} />
+              <Route path="/school-admin/teachers" element={<TeachersPage />} />
+              <Route path="/school-admin/users/:userId" element={<ComplainantPage backTo="/school-admin/grievances" />} />
               <Route path="/school-admin/vehicles" element={<VehiclesPage />} />
               <Route path="/school-admin/drivers" element={<DriversPage />} />
               <Route path="/school-admin/routes" element={<SchoolAdminRoutesPage />} />
               <Route path="/school-admin/children" element={<SchoolAdminChildrenPage />} />
+              <Route path="/school-admin/students/directory" element={<StudentsDirectoryPage />} />
               <Route path="/school-admin/trips" element={<TripsPage />} />
               <Route path="/school-admin/grievances" element={<SchoolAdminGrievancesPage />} />
-              <Route path="/school-admin/payments" element={<SchoolAdminPaymentsPage />} />
-              <Route path="/school-admin/insurance" element={<SchoolAdminInsurancePage />} />
+              <Route path="/school-admin/attendance/corrections" element={<CorrectionRequestsPage />} />
+              <Route path="/school-admin/timetable" element={<TimetableAdminPage />} />
+            </Route>
+          </Route>
+
+          <Route element={<ProtectedRoute allowedRoles={['TEACHER']} />}>
+            <Route element={<AppShell />}>
+              <Route path="/teacher/dashboard" element={<TeacherDashboardPage />} />
+              <Route path="/teacher/class" element={<MyClassPage />} />
+              <Route path="/teacher/periods" element={<MyPeriodsPage />} />
+              <Route path="/teacher/exams" element={<ExamsPage />} />
+              <Route path="/teacher/alerts" element={<TeacherAlertsPage />} />
             </Route>
           </Route>
 

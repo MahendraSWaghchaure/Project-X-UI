@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { listRoutes } from '@/lib/api/routes';
 import { Select } from '@/components/ui/Select';
 
@@ -15,16 +16,17 @@ interface RouteFilterSelectProps {
  * school's catchment into a real service area (its stops).
  */
 export function RouteFilterSelect({ schoolId, value, onChange }: RouteFilterSelectProps) {
+  const { t } = useTranslation();
   const { data: routes } = useQuery({ queryKey: ['routes', schoolId], queryFn: () => listRoutes(schoolId) });
 
   return (
     <Select
-      label="Filter by route"
+      label={t('geo.filterByRoute')}
       value={value ?? ''}
       onChange={(e) => onChange(e.target.value ? Number(e.target.value) : undefined)}
       className="min-w-[200px]"
     >
-      <option value="">All routes</option>
+      <option value="">{t('geo.allRoutes')}</option>
       {routes?.map((r) => (
         <option key={r.id} value={r.id}>
           {r.name}

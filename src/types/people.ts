@@ -1,6 +1,6 @@
 import type { GeoPoint } from './school';
 
-export type DriverEmploymentStatus = 'ACTIVE' | 'ON_LEAVE' | 'TERMINATED';
+export type DriverEmploymentStatus = 'ACTIVE' | 'ON_LEAVE' | 'SUSPENDED' | 'TERMINATED';
 export type DriverVerificationStatus = 'PENDING' | 'VERIFIED' | 'REJECTED';
 
 export interface Driver {
@@ -17,6 +17,10 @@ export interface Driver {
   employmentStatus: DriverEmploymentStatus;
   verificationStatus: DriverVerificationStatus;
   verifiedAt: string | null;
+  address?: string | null;
+  statusReason?: string | null;
+  statusChangedAt?: string | null;
+  vehicleRegistrationNumber?: string | null;
 }
 
 /** What a parent is allowed to see about the driver assigned to their child's vehicle. */

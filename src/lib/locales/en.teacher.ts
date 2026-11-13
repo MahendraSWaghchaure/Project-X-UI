@@ -1,0 +1,51 @@
+/** English strings: teacher area. Merged into `translation` in src/lib/i18n.ts. */
+export const enTeacher = {
+  teacher: {
+    dashboard: {
+      title: 'Your day',
+      subtitle: 'Your class, today’s periods and anything that needs your attention.',
+      myClass: 'My class',
+      noClass: 'You are not a class teacher',
+      openClass: 'Open attendance and students',
+      periodsToday: 'Periods today',
+      openPeriods: 'See my timetable',
+      alertsToday: 'Alerts today',
+      openAlerts: 'See alerts',
+      lecturerClasses: 'Classes where you lecture',
+    },
+    myClass: {
+      noneTitle: 'You are not a class teacher',
+      noneBody: 'Attendance and student details are available to the class teacher of a class. Ask your school admin to assign you a class.',
+    },
+    periods: {
+      title: 'My periods',
+      subtitle: 'Your weekly timetable, day by day.',
+      emptyTitle: 'No periods assigned yet',
+      emptyBody: 'Your school admin adds the periods you teach. They will appear here.',
+    },
+    exams: {
+      title: 'Exams',
+      subtitle: 'Record and review exam results for the classes you lecture.',
+      noneTitle: 'No lecturing classes yet',
+      noneBody: 'Exam results can be added for classes where you teach at least one period.',
+      yourSubjects: 'Your subjects: {{subjects}}',
+      results: 'Results',
+      studentTitle: 'Exam results: {{name}}',
+    },
+    alerts: {
+      title: 'Alerts',
+      subtitle: 'Children the bus driver dropped at school who are not marked present in your register.',
+      emptyTitle: 'No alerts',
+      emptyBody: 'Nothing needs attention for this day.',
+      headline: 'Dropped at school but not marked present',
+      student: 'Student',
+      droppedAt: 'Dropped at',
+      parent: 'Parent',
+      popupTitle: 'Student not marked present',
+      popupBody: 'The driver dropped {{name}} at school, but they are not marked present. Please check.',
+      viewAll: 'View all alerts',
+      nextOf: 'Next ({{count}} more)',
+      gotIt: 'Got it',
+    },
+  },
+};

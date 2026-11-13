@@ -1,6 +1,6 @@
 import { apiClient, unwrap } from '@/lib/apiClient';
 import type { ApiResponse } from '@/types/api';
-import type { Driver, DriverVerificationStatus } from '@/types/people';
+import type { Driver, DriverEmploymentStatus, DriverVerificationStatus } from '@/types/people';
 import type { VehicleType } from '@/types/school';
 import type { SafetyEvent } from '@/types/tracking';
 
@@ -13,6 +13,7 @@ export interface CreateDriverRequest {
   licenseNumber: string;
   licenseExpiry?: string;
   baseSalaryMonthly?: number;
+  address?: string;
 }
 
 export function listDrivers(schoolId: number): Promise<Driver[]> {
@@ -30,6 +31,7 @@ export interface UpdateDriverRequest {
   licenseNumber: string;
   licenseExpiry?: string;
   baseSalaryMonthly?: number;
+  address?: string;
 }
 
 export function updateDriver(schoolId: number, driverId: number, request: UpdateDriverRequest): Promise<Driver> {
@@ -73,4 +75,16 @@ export function updateDriverVerification(schoolId: number, driverId: number, sta
 
 export function listDriverSafetyEvents(schoolId: number, driverId: number): Promise<SafetyEvent[]> {
   return apiClient.get<ApiResponse<SafetyEvent[]>>(`/schools/${schoolId}/drivers/${driverId}/safety-events`).then(unwrap);
+}
+
+/** Suspend / terminate / reinstate. The server requires a reason for SUSPENDED and TERMINATED (stored as statusReason). */
+export function updateDriverEmploymentStatus(
+  schoolId: number,
+  driverId: number,
+  status: DriverEmploymentStatus,
+  reason?: string,
+): Promise<Driver> {
+  return apiClient
+    .patch<ApiResponse<Driver>>(`/schools/${schoolId}/drivers/${driverId}/employment-status`, { status, reason })
+    .then(unwrap);
 }

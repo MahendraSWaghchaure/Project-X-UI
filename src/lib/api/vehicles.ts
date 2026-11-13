@@ -1,12 +1,18 @@
 import { apiClient, unwrap } from '@/lib/apiClient';
 import type { ApiResponse } from '@/types/api';
-import type { Vehicle, VehicleStatus, VehicleType } from '@/types/school';
+import type { OwnershipType, Vehicle, VehicleStatus, VehicleType } from '@/types/school';
 
 export interface CreateVehicleRequest {
   registrationNumber: string;
   type: VehicleType;
   seatCapacity: number;
   gpsDeviceId?: string;
+  ownerName?: string;
+  ownerPhone?: string;
+  ownerAddress?: string;
+  ownershipType?: OwnershipType;
+  /** Allocates one of the school's drivers to this vehicle in the same call. */
+  assignedDriverId?: number;
 }
 
 export function listVehicles(schoolId: number): Promise<Vehicle[]> {
@@ -27,6 +33,13 @@ export interface UpdateVehicleRequest {
   registrationNumber: string;
   type: VehicleType;
   seatCapacity: number;
+  gpsDeviceId?: string;
+  ownerName?: string;
+  ownerPhone?: string;
+  ownerAddress?: string;
+  ownershipType?: OwnershipType;
+  /** Omit to leave the allocation unchanged; use assignVehicleDriver(null) to unassign. */
+  assignedDriverId?: number;
 }
 
 export function updateVehicle(schoolId: number, vehicleId: number, request: UpdateVehicleRequest): Promise<Vehicle> {
@@ -35,4 +48,9 @@ export function updateVehicle(schoolId: number, vehicleId: number, request: Upda
 
 export function retireVehicle(schoolId: number, vehicleId: number): Promise<void> {
   return apiClient.delete<ApiResponse<void>>(`/schools/${schoolId}/vehicles/${vehicleId}`).then(unwrap);
+}
+
+/** `driverId` null unassigns whichever driver currently holds the vehicle. */
+export function assignVehicleDriver(schoolId: number, vehicleId: number, driverId: number | null): Promise<Vehicle> {
+  return apiClient.put<ApiResponse<Vehicle>>(`/schools/${schoolId}/vehicles/${vehicleId}/driver`, { driverId }).then(unwrap);
 }

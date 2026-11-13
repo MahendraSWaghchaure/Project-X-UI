@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/Badge';
 import type { GrievanceStatus } from '@/types/grievance';
 
@@ -9,5 +10,6 @@ const TONE: Record<GrievanceStatus, 'warning' | 'info' | 'success' | 'danger'> =
 };
 
 export function GrievanceStatusBadge({ status }: { status: GrievanceStatus }) {
-  return <Badge tone={TONE[status]}>{status.replace('_', ' ')}</Badge>;
+  const { t } = useTranslation();
+  return <Badge tone={TONE[status]}>{t(`enums.grievanceStatus.${status}`, { defaultValue: status.replace('_', ' ') })}</Badge>;
 }

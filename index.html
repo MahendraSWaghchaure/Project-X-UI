@@ -1,15 +1,34 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="day">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#B7D8F5" />
     <title>Sunju School Bus Service &mdash; School Transport, Accounted For</title>
+    <!-- No-flash theme: runs before first paint. Mirrors src/lib/theme/themeCore.ts (day = 06:00-18:00 local, unless the user pinned Day/Night). -->
+    <script>
+      (function () {
+        var theme;
+        try {
+          var mode = window.localStorage.getItem('sunju-theme-mode');
+          if (mode === 'day' || mode === 'night') theme = mode;
+        } catch (e) {}
+        if (!theme) {
+          var h = new Date().getHours();
+          theme = h >= 6 && h < 18 ? 'day' : 'night';
+        }
+        var root = document.documentElement;
+        root.setAttribute('data-theme', theme);
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute('content', theme === 'night' ? '#030407' : '#B7D8F5');
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Spectral:wght@500;600;700&family=Public+Sans:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=Noto+Sans+Devanagari:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
     />
   </head>
   <body>

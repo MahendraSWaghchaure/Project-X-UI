@@ -100,6 +100,10 @@ export function getMyBankDetails(): Promise<BankDetail> {
   return apiClient.get<ApiResponse<BankDetail>>('/drivers/me/bank-details').then(unwrap);
 }
 
+export function deleteMyBankDetails(): Promise<void> {
+  return apiClient.delete<ApiResponse<void>>('/drivers/me/bank-details').then(unwrap);
+}
+
 // --- Payroll ---
 
 export function listMyPayroll(): Promise<PayrollRecord[]> {
